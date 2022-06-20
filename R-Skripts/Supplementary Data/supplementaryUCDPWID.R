@@ -4,7 +4,8 @@ library(states)
 library(ggplot2)
 
 
-
+#WID World inequality database
+#use prepared BWdata and set wd to "wid_all_data" folder
 load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/BetterWorksClustered.RData")
 setwd("/Users/malik/Downloads/wid_all_data")
 country_iso <- countrycode::countrycode(sourcevar = data_range$Country,
@@ -141,5 +142,9 @@ ylab("Conflict counts (all events)") +
 ggtitle("Number of Conflicts 2010-2017")+
 facet_wrap(~country)
 
+#WIID
+
+wiid <- readxl::read_excel("/Users/malik/Downloads/wiidcountry_0_0.xlsx")
+wiid <- wiid[which(wiid$c2 %in% country_iso ),]
 
 
