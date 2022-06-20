@@ -1,0 +1,50 @@
+---
+title: "3.2 From Long to Wide"
+output: html_document
+---
+
+# Run before preparing data
+```{r}
+#install packages
+# install.packages("reshape2")
+# install.packages("ggplot2")
+# install.packages("dplyr")
+# install.packages("lubridate")
+# install.packages("tcltk")
+# install.packages("rJava")
+
+#load packages
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(tcltk)
+library(rJava)
+```
+
+# Open data
+```{r}
+assessment_example <- data#[data$Cluster=="Occupational Safety and Health",]
+#pr_data_example <- read.csv("PR2 sample dataset.csv",header = T, stringsAsFactors = F)
+```
+
+# 3.2.1 Reshape assessment data
+```{r}
+assessment_example$Finding <- as.integer(assessment_example$Finding)
+assessment_example_ncq <- assessment_example[assessment_example$Question.type != "FGW",]
+reshaped_assessment_example <- dcast(assessment_example_ncq, Cycle + Factory.Assessed.ID ~ Q.Label, value.var="Finding")
+
+```
+
+# 3.2.2 Reshape PR2 data
+## a) By level of progress
+```{r}
+reshaped_social_dialogue <- dcast(pr_data_example,cycle_number + organization_id ~ question, value.var = "answer", fun.aggregate = length)
+colnames(reshaped_social_dialogue) <- c("Cycle","Factory.ID", "Moderate.progress", "No.progress","On.track")
+```
+
+## b) By question
+```{r}
+pr_data_example$answer <- ifelse(pr_data_example$answer == "No progress", 0, ifelse(pr_data_example$answer == "Moderate progress", 1,2))
+reshaped_social_dialogue <- dcast(pr_data_example, cycle_number + organization_id ~ question, value.var = c("answer"), fun.aggregate=last)
+```
