@@ -130,6 +130,16 @@ countries[countries=="Cambodia"] <- "Cambodia (Kampuchea)"
 states <- subset(gwstates, country_name %in% countries)
 gwcode <- unique(states$gwcode)
 ucdp.ged<-getUCDP(db="gedevents", version="18.1",location=gwcode)
+years=c(2010:2017)
+events2010 <- ucdp.ged[which(ucdp.ged$year %in% years),]
+counts <- events2010[, .(rowCount = .N), by = list(year,country)]
+counts
+
+#Number of Conflicts per region and year
+ggplot(counts,aes(x=year,y=rowCount))+geom_bar(stat="identity")+
+ylab("Conflict counts (all events)") +
+ggtitle("Number of Conflicts 2010-2017")+
+facet_wrap(~country)
 
 
 
