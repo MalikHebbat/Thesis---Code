@@ -1,0 +1,73 @@
+---
+title: "2.1.2 Enter and clean data"
+output: html_document
+---
+
+# Open data
+```{r}
+#install packages
+# install.packages("reshape2")
+# install.packages("ggplot2")
+# install.packages("dplyr")
+# install.packages("lubridate")
+# install.packages("tcltk")
+# install.packages("rJava")
+
+#load packages
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(tcltk)
+library(rJava)
+
+#open sample dataset
+
+load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/All Better Work Assessments through 31 May 2022.RData")
+
+data<- all_bw_assessments_through_31_may_2022_with_further_detail
+rm(all_bw_assessments_through_31_may_2022_with_further_detail)
+```
+
+# Find out timeframe
+```{r}
+#store the function
+get_date_range <- function(df){
+  df$final_date <- as.Date(df$Assesment.Start.Date, "%d/%m/%Y")
+  latest_and_earliest <- df%>%
+    group_by(Country)%>%
+    summarise(min_date = min(final_date),max_date = max(final_date))
+  return(latest_and_earliest)
+}
+
+
+
+#use the function
+data_range <- get_date_range(data)
+View(data_range)
+
+```
+
+# Create time variable
+```{r}
+data$date_final <- as.Date(data$Assesment.Start.Date, "%d/%m/%Y")
+    data$Year <- as.numeric(format(data$date_final, "%Y"))
+    data$Month <- as.numeric(format(data$date_final, "%m"))
+
+```
+
+# Filter data
+```{r}
+
+Clusters <- unique(data$Cluster)
+Cl <- list()
+for (var in Clusters) {
+  
+  Cl[[var]] <- data %>%
+    filter(Cluster == var)
+  
+  assign(paste("X",var,sep="_"),Cl[[var]])
+}
+
+save(list=ls(),file="/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/BetterWorksClustered.RData")
+```
