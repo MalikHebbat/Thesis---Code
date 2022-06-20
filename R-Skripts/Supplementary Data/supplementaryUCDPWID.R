@@ -60,7 +60,7 @@ ggplot(shareweal) +
   geom_line(aes(x = year, y = value, color = percentile)) +
   ylab("top share") +
   scale_color_discrete(labels = c("p90p100" = "top 10%", "p99p100" = "top 1%")) + 
-  ggtitle("Top 1% and top 10% personal wealth shares in France, 1800-2015")+
+  ggtitle("Top 1% and top 10% personal wealth shares)+
   facet_wrap(~country)
 
 
