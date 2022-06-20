@@ -148,3 +148,37 @@ wiid <- readxl::read_excel("/Users/malik/Downloads/wiidcountry_0_0.xlsx")
 wiid <- wiid[which(wiid$c2 %in% country_iso ),]
 
 
+#geospatial health facalities
+
+library(rhealthsites)
+library(sf)
+hs_set_api_key("99d44d44df3139072691b371f98d74b1001e1b9e")
+
+
+hs <- list()
+for (country in data_range$Country) {
+hs[[country]] <- hs_facilities(country = country)
+hs[[country]]$country <- country
+}
+
+hs <- dplyr::bind_rows(hs)
+
+ggplot(hs,aes(x=amenity,fill=amenity))+geom_bar()+facet_wrap( ~country,drop = TRUE)+coord_flip()
+
+
+#Education and work conditions (only examples, a lot more, we have to choose)
+#seee edu vector
+edu <- WDIsearch("Education")
+View(edu)
+
+x <- WDI(indicator=c("fin1.t.a.5",
+                     "fin15.t.a.5",
+                     "JI.EMP.1524.HE.ZS",
+                     "JI.EMP.1564.HE.ZS",
+                     "JI.EMP.CONT.HE.ZS",
+                     "JI.EMP.UNPD.LE.ZS",
+                     "SE.SEC.ENRL.GC.FE.ZS"))
+
+edu_df <- x[which(x$country %in% data_range$Country),]
+
+save(c,c1,hs,edu_df,events2010,counts,wiid,file="/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/supplementaryConflictWIDHSEDU.RDATA")
