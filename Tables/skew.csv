@@ -1,0 +1,73 @@
+"Cluster","Country","Skew","Kurtosis"
+"Child Labour","Bangladesh",5.77402068898083,39.1830527207237
+"Child Labour","Cambodia",7.72656206904699,67.2533919538333
+"Child Labour","Egypt",1.70531539541989,4.47887349335829
+"Child Labour","Ethiopia",2.74457593331556,10.1624134948097
+"Child Labour","Haiti",6.19637794663122,47.2299829446575
+"Child Labour","Indonesia",9.5119205509328,97.0187428682381
+"Child Labour","Jordan",8.43858679019047,80.7966722984904
+"Child Labour","Nicaragua",NA,NA
+"Child Labour","Vietnam",2.83192170776069,10.0059097408545
+"Compensation","Bangladesh",0.342689283930964,2.69788750915669
+"Compensation","Cambodia",0.293688572207926,2.37367876967539
+"Compensation","Egypt",0.375819117095911,2.19888652114427
+"Compensation","Ethiopia",1.25342117023087,4.22404166012263
+"Compensation","Haiti",0.651377833671771,3.53236987765597
+"Compensation","Indonesia",0.293528199180315,2.25726987110442
+"Compensation","Jordan",1.01495811218379,3.56421326615056
+"Compensation","Nicaragua",1.9376436310067,6.41927860785201
+"Compensation","Vietnam",0.753961389807736,2.91280082351021
+"Contracts and Human Resources","Bangladesh",-0.762155180568915,2.61622674362819
+"Contracts and Human Resources","Cambodia",-0.46357059371727,2.19419531945514
+"Contracts and Human Resources","Egypt",1.38410826976777,5.17677492713482
+"Contracts and Human Resources","Ethiopia",1.09070205815086,4.70686813549042
+"Contracts and Human Resources","Haiti",0.56423672460253,2.72581132150343
+"Contracts and Human Resources","Indonesia",-0.201947101624119,2.31224777072592
+"Contracts and Human Resources","Jordan",0.354981236315895,2.53505644156468
+"Contracts and Human Resources","Nicaragua",0.979983994078158,3.46558372618438
+"Contracts and Human Resources","Vietnam",0.275954859800851,2.01675387877299
+"Discrimination","Bangladesh",6.62986455483659,44.9551040154808
+"Discrimination","Cambodia",3.12347714094446,11.0876877410466
+"Discrimination","Egypt",0.254184120267256,1.46042460834837
+"Discrimination","Ethiopia",1.15470053837925,2.33333333333333
+"Discrimination","Haiti",3.66187585915201,16.1614295995509
+"Discrimination","Indonesia",0.219090030205561,4.20496526274659
+"Discrimination","Jordan",0.555598323424678,2.45122963781827
+"Discrimination","Nicaragua",3.36723481656812,14.3719222040713
+"Discrimination","Vietnam",2.12430835478178,7.7714853009186
+"Forced Labour","Bangladesh",18.6816179439272,350.002849002857
+"Forced Labour","Cambodia",9.87560765222788,111.272444393508
+"Forced Labour","Egypt",NA,NA
+"Forced Labour","Ethiopia",3.42634461173625,12.739837398374
+"Forced Labour","Haiti",5.39528509856014,30.1091012947452
+"Forced Labour","Indonesia",23.9583333333343,575.001736111139
+"Forced Labour","Jordan",2.85985003573992,10.8746106321915
+"Forced Labour","Nicaragua",NA,NA
+"Forced Labour","Vietnam",15.4421081541605,239.45870424479
+"Freedom of Association and Collective Bargaining","Bangladesh",1.52032372175837,4.96097968289334
+"Freedom of Association and Collective Bargaining","Cambodia",2.20803620857686,7.60320844000115
+"Freedom of Association and Collective Bargaining","Egypt",0.730987985088288,1.53434343434344
+"Freedom of Association and Collective Bargaining","Ethiopia",3.42634461173624,12.739837398374
+"Freedom of Association and Collective Bargaining","Haiti",2.91091294284666,10.9509370240375
+"Freedom of Association and Collective Bargaining","Indonesia",1.81286611857841,5.47233417184532
+"Freedom of Association and Collective Bargaining","Jordan",0.516158135159418,2.64487339279514
+"Freedom of Association and Collective Bargaining","Nicaragua",2.3416381738718,8.13562054185198
+"Freedom of Association and Collective Bargaining","Vietnam",0.594923000368061,2.41247455017598
+"Occupational Safety and Health","Bangladesh",-0.940456648625989,4.59734080029658
+"Occupational Safety and Health","Cambodia",-0.908099338217225,3.62417961405946
+"Occupational Safety and Health","Egypt",-0.507859157789933,2.76299543710412
+"Occupational Safety and Health","Ethiopia",-0.275479146511361,3.00842851044918
+"Occupational Safety and Health","Haiti",-1.10865402883368,4.39788005912877
+"Occupational Safety and Health","Indonesia",-0.655871477945396,2.71281082402791
+"Occupational Safety and Health","Jordan",-0.568645008249251,3.14566521059889
+"Occupational Safety and Health","Nicaragua",-0.0282938946553815,2.0057607877902
+"Occupational Safety and Health","Vietnam",-0.373722432782622,2.45484875669738
+"Working Time","Bangladesh",-0.313439632594919,2.7010320410221
+"Working Time","Cambodia",0.207808959920571,2.23007845254826
+"Working Time","Egypt",-0.0751143716689053,1.93314903440716
+"Working Time","Ethiopia",0.0143559212028201,2.57579004997147
+"Working Time","Haiti",0.102731764877054,1.99200586086631
+"Working Time","Indonesia",0.198875514066655,2.27724346736788
+"Working Time","Jordan",1.84329731181812,6.14196726599174
+"Working Time","Nicaragua",1.24333919625949,3.35737628902455
+"Working Time","Vietnam",-0.0127389270268289,2.29286111334066
