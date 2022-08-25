@@ -1,4 +1,4 @@
-##Version 1.5 (Malik, 22/06/2022)
+##Version 1.4 (Malik, 20/06/2022)
 options(java.parameters = c("-XX:+UseConcMarkSweepGC", "-Xmx8192m"))
 library("wid")
 library(conflictr)
@@ -21,10 +21,10 @@ library(cluster)
 load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/BetterWorksClustered.RData")
 setwd("/Users/malik/Downloads/wid_all_data")
 country_iso <- countrycode::countrycode(sourcevar = data_range$Country,
-                                        origin = "country.name", destination = "iso2c")
+                         origin = "country.name", destination = "iso2c")
 list.files <- list()
 for(country in country_iso) {
-  list.files <- append(list.files, paste0("WID_DATA","_",country,".csv"))
+list.files <- append(list.files, paste0("WID_DATA","_",country,".csv"))
 }
 x <- lapply(list.files, read.csv2)
 
@@ -59,6 +59,7 @@ ggplot(aptinc) +
   geom_line(aes(x = year, y = value_ppp, color = country)) +
   ylab("2021 $ PPP") +
   ggtitle("Bottom 50% pre-tax national income")
+ggsave("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Plots/Supplementary/healthfacilities.png")
 
 #top wealth shares
 
@@ -75,6 +76,7 @@ ggplot(shareweal) +
   scale_color_discrete(labels = c("p90p100" = "top 10%", "p99p100" = "top 1%")) + 
   ggtitle("Top 1% and top 10% personal wealth shares")+
   facet_wrap(~country)
+ggsave("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Plots/Supplementary/topW.png")
 
 
 ## Evolution of national income over long period
@@ -102,7 +104,7 @@ ggplot(anninc) +
   ylab("2016 $ PPP") +
   ggtitle("Average net national income per adult")
 
-
+  
 ## Divergence of incomes 
 
 tpinc <- download_wid(
@@ -150,10 +152,10 @@ counts_confl
 
 #Number of Conflicts per region and year
 ggplot(counts_confl,aes(x=year,y=rowCount))+geom_bar(stat="identity")+
-  ylab("Conflict counts (all events)") +
-  ggtitle("Number of Conflicts 2010-2017")+
-  facet_wrap(~country)
-
+ylab("Conflict counts (all events)") +
+ggtitle("Number of Conflicts 2010-2017")+
+facet_wrap(~country)
+ggsave("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Plots/Supplementary/conflicts.png")
 #WIID
 
 wiid <- readxl::read_excel("/Users/malik/Downloads/wiidcountry_0_0.xlsx")
@@ -169,8 +171,8 @@ hs_set_api_key("99d44d44df3139072691b371f98d74b1001e1b9e")
 
 hs <- list()
 for (country in data_range$Country) {
-  hs[[country]] <- hs_facilities(country = country)
-  hs[[country]]$country <- country
+hs[[country]] <- hs_facilities(country = country)
+hs[[country]]$country <- country
 }
 
 hs <- dplyr::bind_rows(hs)
@@ -179,6 +181,8 @@ ggplot(hs,aes(x=amenity,fill=amenity))+
   geom_bar()+
   facet_wrap( ~country,drop = TRUE)+
   coord_flip()
+
+ggsave("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Plots/Supplementary/healthfacilities.png")
 
 
 #Education and work conditions (only examples, a lot more, we have to choose)
@@ -207,16 +211,16 @@ city <- unique(world.cities$name[which(world.cities$country.etc %in% data_range$
                                          world.cities$capital==1)])
 osm <- list()
 for (city in city) {
-  address_components <- tribble(
+address_components <- tribble(
     ~cty,
-    city
+   city
     
-  )
-  
-  osm[[city]] <- geo(
-    address = address_components$cty, method = "osm",
-    lat = latitude, long = longitude
-  )
+ )
+
+osm[[city]] <- geo(
+address = address_components$cty, method = "osm",
+lat = latitude, long = longitude
+)
 }
 
 city <- bind_rows(osm)
@@ -244,6 +248,7 @@ ggplot(counts_air,aes(x=country,y=rowCount))+geom_bar(stat="identity")+
   ggtitle("Number of airports near capital (100 km)")+
   ylab("Number of airports")+
   xlab("")
+ggsave("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Plots/Supplementary/airp.png")
 
 library(xlsx)
 
@@ -257,7 +262,7 @@ for (year in 2010:2020) {
 list.files <- unlist(list.files)
 x <- list()
 
-for (file in list.files) {
+  for (file in list.files) {
   
   x[[file]] <- read.xlsx(file=file,sheetIndex = 2)
   x[[file]] <- x[[file]][-c(1:7),]
@@ -285,9 +290,9 @@ for (file in list.files) {
     mutate(Biocapacity = as.numeric(Biocapacity)) %>%
     mutate(GDP_per_capita = as.numeric(GDP_per_capita))
   x[[file]]$year <- parse_number(gsub("-"," ",file))
-}
-
-
+  }
+  
+    
 happy_ind <- bind_rows(x)
 happy_ind <- happy_ind[which(happy_ind$Country %in% data_range$Country),]
 
@@ -300,6 +305,7 @@ ggplot(happy_ind, aes(x=GDP_per_capita, y=HPI)) +
   ggtitle('GDP per Capita(log10) and Happy Planet Index Score') + 
   coord_trans(x = 'log10')+
   facet_wrap(~year)
+ggsave("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Plots/Supplementary/happyind.png")
 
 qplot(x=Var1, y=Var2, data=reshape2::melt(cor(happy_ind[, 5:11], use="p")), fill=value, geom="tile") +
   scale_fill_gradient2(limits=c(-1, 1)) + 
@@ -344,7 +350,7 @@ for (cit in city) {
     q[[cit]] <- NULL
   }
 }
-
+    
 schools <- bind_rows(q)
 names_w<- names(world.cities)
 names_w[c(1,2)] <- c("city","country") 
