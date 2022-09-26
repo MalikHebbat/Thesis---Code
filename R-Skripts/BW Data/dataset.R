@@ -1,34 +1,61 @@
 library(tidyverse)
 library(lubridate)
-
+library(readxl)
 
 load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/dataset_Vers1.RDATA")
 
 #get the question data
 data$Q.Label <- gsub("\r\n","",data$Q.Label)
 
+cat_document <- read_excel('/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/cycle-trend-panel-creation-main/2022-02-01_All CAT questions with with Global Identifiers and all Tags.xlsx')%>%
+  group_by(country_name, cluster_name, compliance_point_name,first_original_question_id,question_id,
+           text,finding,question_type,global_question_mapping_id,global_text,global_finding)%>%
+  summarise(n=n())%>%
+  select(-n)
 
+unique(cat_document$text[str_detect(cat_document$text ,"refuse to bargain")& (cat_document$country_name=="Vietnam" |cat_document$country_name=="Indonesia" | cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"refuse to bargain")& (cat_document$country_name=="Vietnam")])
 
 refBarg<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Does the employer refuse to bargain collectively or refuse to bargain in good faith with the union, worker representatives, union federations or confederations?" 
-         & (Country=="Indonesia" | Country=="Jordan"| Country=="Vietnam"))%>%
+  filter(Q.Label=="Does the employer refuse to bargain collectively or refuse to bargain in good faith with the union, worker representatives, union federations or confederations?" |
+        Q.Label==  "Does the employer refuse to bargain collectively or refuse to bargain in good faith with the union(s)?" |
+          Q.Label== "Does the employer refuse to bargain collectively or refuse to bargain in good faith with the union?" |
+          Q.Label=="Does the employer refuse to bargain collectively in accordance with legal requirements, or refuse to bargain in good faith with the union, workers representation, union federation or confederation?"
+      & (Country=="Indonesia" | Country=="Jordan"| Country=="Vietnam"))%>%
   rename("refBarg"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"freely form and join")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"freely form and join")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"freely form and join")& (cat_document$country_name=="Vietnam")])
 
 formUnion<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Can workers freely form and join the union of their choice?" 
+  filter(Q.Label=="Can workers freely form and join the union of their choice?" |
+           Q.Label=="Can workers freely form and join the union of their choice ?"
          & (Country=="Indonesia" | Country=="Jordan"| Country=="Vietnam"))%>%
   rename("formUnion"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"punish workers")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"punish workers")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"punish workers")& (cat_document$country_name=="Vietnam")])
+
 
 punUnion<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Does the employer punish workers for joining a union or engaging in union activities?" 
+  filter(Q.Label=="Does the employer punish workers for joining a union or engaging in union activities?"|
+         Q.Label=="Does the employer punish workers for joining a union or engaging in union activities ?"
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("punUnion"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"percentage of workers")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"percentage of workers")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"percentage of workers")& (cat_document$country_name=="Vietnam")])
+
+
 
 percUnion<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
@@ -37,12 +64,23 @@ percUnion<- data%>%
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("percUnion"=Finding)
 
-percFemUnion<- data%>%
-  select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
-  group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="What is the percentage of women serving on the trade union executive committee (for each union)?" 
-         & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
-  rename("percFemUnion"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"percentage of women")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"percentage of women")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"percentage of women")& (cat_document$country_name=="Vietnam")])
+
+
+# percFemUnion<- data%>%
+#   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
+#   group_by(Country,Factory.Assessed.ID,Cycle)%>%
+#   filter(Q.Label=="What is the percentage of women serving on the trade union executive committee (for each union)?" 
+#          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
+#   rename("percFemUnion"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"have access to the workers")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"have access to the workers")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"have access to the workers")& (cat_document$country_name=="Vietnam")])
+
 
 accessUnion<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
@@ -50,6 +88,11 @@ accessUnion<- data%>%
   filter((Q.Label=="Do union representatives have access to the workers in the workplace?" 
           & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam")))%>%
   rename("AccessUnion"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"collective bargaining agreements")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"collective bargaining agreements")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"collective bargaining agreements")& (cat_document$country_name=="Vietnam")])
+
 
 NumBarg<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
@@ -59,12 +102,22 @@ NumBarg<- data%>%
   rename("NumBarg"=Finding)
 
 
-PICC<- data%>%
-  select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
-  group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Did workers freely choose their representatives on the bipartite committee (PICC), and do workers know who their representatives are?" 
-         & (Country=="Indonesia" | Country=="Jordan"| Country=="Vietnam"))%>%
-  rename("Picc"=Finding)
+unique(cat_document$text[str_detect(cat_document$text ,"PICC")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"PICC")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"PICC")& (cat_document$country_name=="Vietnam")])
+
+# PICC<- data%>%
+#   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
+#   group_by(Country,Factory.Assessed.ID,Cycle)%>%
+#   filter(Q.Label=="Did workers freely choose their representatives on the bipartite committee (PICC), and do workers know who their representatives are?" 
+#          & (Country=="Indonesia" | Country=="Jordan"| Country=="Vietnam"))%>%
+#   rename("Picc"=Finding)
+
+
+unique(cat_document$text[str_detect(cat_document$text ,"Is gender a factor")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"Is gender a factor")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"gender a factor")& (cat_document$country_name=="Vietnam")])
+
 
 trainGen<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
@@ -72,6 +125,12 @@ trainGen<- data%>%
   filter(Q.Label=="Is gender a factor in decisions regarding opportunities for promotion or access to training?" 
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainGen"=Finding)
+
+
+unique(cat_document$text[str_detect(cat_document$text ,"chemicals")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"chemicals")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"chemicals")& (cat_document$country_name=="Vietnam")])
+
 
 
 trainChem<- data%>%
@@ -82,6 +141,11 @@ trainChem<- data%>%
   rename("trainChem"=Finding)
 
 
+unique(cat_document$text[str_detect(cat_document$text ,"first-aid training")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"first-aid")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"first-aid training")& (cat_document$country_name=="Vietnam")])
+
+
 trainFirst<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
@@ -89,36 +153,36 @@ trainFirst<- data%>%
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainFirst"=Finding)
 
+unique(cat_document$text[str_detect(cat_document$text ,"under age 18")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"under age 18")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"under age 18")& (cat_document$country_name=="Vietnam")])
 
-trainOSH<- data%>%
-  select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
-  group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Has the employer properly trained all workers on all relevant OSH regulations and informed them about all occupational hazards relevant to their work?" 
-         & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
-  rename("trainOSH"=Finding)
-
-
-trainOSH<- data%>%
-  select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
-  group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Has the employer properly trained all workers on all relevant OSH regulations and informed them about all occupational hazards relevant to their work?" 
-         & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
-  rename("trainOSH2"=Finding)
 
 trainu16<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Are all workers who are under age 18 and doing hazardous work (i) at least 16 years old; (ii) working in accordance with Jordanian law; (iii) working in such a way that their health, safety and morals are fully protected; and (iv) adequately trained to do the work safely?" 
+  filter(Q.Label=="Are all workers who are under age 18 and doing hazardous work (i) at least 16 years old; (ii) working in accordance with Jordanian law; (iii) working in such a way that their health, safety and morals are fully protected; and (iv) adequately trained to do the work safely?"| 
+           Q.Label=="Are there any workers under age 18 who are doing hazardous work and who are (i) under 16 years old; (ii) working more than 7 hours/day or 42 hours/week; (vi) working overtime or at night; (iii) working in such a way that their health, safety and morals are not fully protected; or (iv) not adequately trained to do the work safely?"|
+           Q.Label=="Are all workers who are under age 15 working (a) in accordance with national regulations regarding light work or (b) in a government-approved training program?" 
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainu16"=Finding)
 
+# unique(cat_document$text[str_detect(cat_document$text ,"How many vocational")& (cat_document$country_name=="Jordan")])
+# unique(cat_document$text[str_detect(cat_document$text ,"vocational")& (cat_document$country_name=="Indonesia")])
+# unique(cat_document$text[str_detect(cat_document$text ,"vocational")& (cat_document$country_name=="Vietnam")])
+# 
+# 
+# trainVoc<- data%>%
+#   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
+#   group_by(Country,Factory.Assessed.ID,Cycle)%>%
+#   filter(Q.Label=="How many vocational trainees are employed by the factory?" 
+#          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
+#   rename("trainVoc"=Finding)
 
-trainVoc<- data%>%
-  select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
-  group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="How many vocational trainees are employed by the factory?" 
-         & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
-  rename("trainVoc"=Finding)
+
+unique(cat_document$text[str_detect(cat_document$text ,"training workers")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"training")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"training workers")& (cat_document$country_name=="Vietnam")])
 
 
 trainWorker<- data%>%
@@ -135,25 +199,31 @@ trainMen<- data%>%
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainMen"=Finding)
 
-trainVocMen<- data%>%
-  select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
-  group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="How many of the vocational trainees are men?" 
-         & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
-  rename("trainVocMen"=Finding)
+# trainVocMen<- data%>%
+#   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
+#   group_by(Country,Factory.Assessed.ID,Cycle)%>%
+#   filter(Q.Label=="How many of the vocational trainees are men?" 
+#          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
+#   rename("trainVocMen"=Finding)
 
+
+unique(cat_document$text[str_detect(cat_document$text ,"apprentice")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"apprentice")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"training/apprentice")& (cat_document$country_name=="Vietnam")])
 
 trainAppr<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="How many training/apprentice workers are employed by the factory?" 
+  filter(Q.Label=="How many training/apprentice workers are employed by the factory?" |
+           Q.Label=="How many apprentices are employed by the factory in production?"
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainAppr"=Finding)
 
 trainApprMen<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="How many training/apprentice workers are men?" 
+  filter(Q.Label=="How many training/apprentice workers are men?" |
+           Q.Label=="How many of the apprentices in production are men?"
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainApprMen"=Finding)
 
@@ -164,10 +234,17 @@ trainOSH<- data%>%
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("trainOSH3"=Finding)
 
+unique(cat_document$text[str_detect(cat_document$text ,"minimum wage")& (cat_document$country_name=="Jordan")])
+unique(cat_document$text[str_detect(cat_document$text ,"minimum wage")& (cat_document$country_name=="Indonesia")])
+unique(cat_document$text[str_detect(cat_document$text ,"minimum wage")& (cat_document$country_name=="Vietnam")])
+
+
 minimumWage<- data%>%
   select(Country,Cycle,Year,Factory.Assessed.ID,Q.Label,Question.ID,Finding)%>%
   group_by(Country,Factory.Assessed.ID,Cycle)%>%
-  filter(Q.Label=="Does the employer pay the correct district minimum wage for ordinary hours of work to permanent full time workers (PKWTT) ?" 
+  filter(Q.Label=="Does the employer pay the correct district minimum wage for ordinary hours of work to permanent full time workers (PKWTT) ?" |
+           Q.Label=="Does the employer pay at least minimum wage for ordinary hours of work to regular full time workers?"|
+         Q.Label=="Does the employer pay at least the applicable legal minimum wage for ordinary hours of work to regular full time workers?"
          & (Country=="Indonesia" | Country=="Jordan" | Country=="Vietnam"))%>%
   rename("tminWage"=Finding)
 
@@ -229,8 +306,6 @@ cpsx <- cpsx %>%
   left_join(.,refBarg[,c("Factory.Assessed.ID","Country","Cycle","Year","refBarg")],
               by=c('Cycle','Country','Year',"Factory.Assessed.ID")) %>%
   
-  left_join(.,formUnion[,c("Country","Cycle","Year","Factory.Assessed.ID","formUnion")],
-              by=c('Cycle','Country','Year',"Factory.Assessed.ID")) %>%
   
   left_join(.,formUnion[,c("Country","Cycle","Year","Factory.Assessed.ID","formUnion")],
             by=c('Cycle','Country','Year',"Factory.Assessed.ID")) %>%
@@ -241,11 +316,10 @@ cpsx <- cpsx %>%
   left_join(.,NumBarg[,c("Country","Cycle","Year","Factory.Assessed.ID","NumBarg")],
                   by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
         
-        left_join(.,percFemUnion[,c("Country","Cycle","Year","Factory.Assessed.ID","percFemUnion")],
+        left_join(.,minimumWage[,c("Country","Cycle","Year","Factory.Assessed.ID","tminWage")],
                   by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
         
-        left_join(.,PICC[,c("Country","Cycle","Year","Factory.Assessed.ID","Picc")],
-                  by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
+        
   
   left_join(.,punUnion[,c("Country","Cycle","Year","Factory.Assessed.ID","punUnion")],
             by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
@@ -276,12 +350,6 @@ cpsx <- cpsx %>%
             by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
   
   left_join(.,trainu16[,c("Country","Cycle","Year","Factory.Assessed.ID","trainu16")],
-            by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
-  
-  left_join(.,trainVoc[,c("Country","Cycle","Year","Factory.Assessed.ID","trainVoc")],
-            by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
-  
-  left_join(.,trainVocMen[,c("Country","Cycle","Year","Factory.Assessed.ID","trainVocMen")],
             by=c('Cycle','Country','Year',"Factory.Assessed.ID"))%>%
   
   left_join(.,trainWorker[,c("Country","Cycle","Year","Factory.Assessed.ID","trainWorker")],
