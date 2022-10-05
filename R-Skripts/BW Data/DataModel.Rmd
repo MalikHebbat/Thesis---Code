@@ -514,7 +514,7 @@ Imputation takes place
 
 ```{r}
 #tempData <- mice(pdata,m=5,method="rf",maxit=5,cluster.seed=500)
-
+load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/impData.RData")
 rem_imp <- c("Factory.Assessed.Name","Zip.Code", 
                        "Datasets","Section", "Division" ,
                          "Latest.Cycle", "Cycle.Start.Date","ID",  "Status", "ISO", "Continent"," Country.Code..Alpha.2.")
@@ -539,8 +539,7 @@ feel free to play around!
 library(sjstats)
 library(fixest)
 tempDataForest$ximp$NumBarg <- round(tempDataForest$ximp$NumBarg)
-tempDataForest$ximp$tminWage <- as.factor(ifelse(tempDataForest$ximp$tminWage<0.5,0,1))
-
+#tempDataForest$ximp$tminWage <- as.factor(ifelse(tempDataForest$ximp$tminWage<0.5,0,1))
 
 
 summary(fit.1 <- fepois(factory_cp_level_nc_rate ~ Peer.Grouping.Enabled+firm_age + lenPart+firm_size+
@@ -562,17 +561,75 @@ library(rpart)
 library(rpart.plot)
 library(rattle)
 load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/impData.RData")
-bw_tree1 <- rpart(factory_cp_level_nc_rate~.,data=tempDataForest$ximp)
-bw_tree1_prune <- prune(bw_tree1,cp= bw_tree1$cptable[which.min(bw_tree1$cptable[,"xerror"]),"CP"])
-fancyRpartPlot(bw_tree1_prune, uniform=TRUE,
-main="Pruned Classification Tree")
 
-rem1 <- c("total_cps","total_cp_nc","Cluster","HPI_rank")
+rem1 <- c("total_cps","total_cp_nc","HPI_rank","trainGen")
 temp <- tempDataForest$ximp[,!names(tempDataForest$ximp) %in% rem1]
-bw_tree2 <- rpart(factory_cp_level_nc_rate~.,data=temp)
-bw_tree2_prune <- prune(bw_tree2,cp= bw_tree1$cptable[which.min(bw_tree1$cptable[,"xerror"]),"CP"])
-fancyRpartPlot(bw_tree2_prune, uniform=TRUE,
-main="Pruned Classification Tree")
+
+#pruned for splitting by cluster
+CL <- split(temp,temp$Cluster)
+bw_tree=list()
+bw_tree2_prune <- list()
+for( name in names(CL)) {
+  set.seed(501)
+  bw_tree[[name]] <- rpart(factory_cp_level_nc_rate~.,data=CL[[name]])
+  
+  bw_tree2_prune[[name]] <- prune(bw_tree[[name]],cp=     bw_tree[[name]]$cptable[which.min(bw_tree[[name]]$cptable[,"xerror"]),"CP"])
+  
+  
+}
+
+
+bw_tree
+
+fancyRpartPlot(bw_tree2_prune[[1]])
+fancyRpartPlot(bw_tree2_prune[[2]])
+fancyRpartPlot(bw_tree2_prune[[3]])
+
+
+#pruned for splitting by country
+ctry <-  split(temp,temp$Country)
+
+ 
+bw_tree1=list()
+bw_tree1_prune <- list()
+for( name in names(ctry)) {
+  set.eed(501)
+  bw_tree1[[name]] <- rpart(factory_cp_level_nc_rate~.,data=ctry[[name]])
+  
+  bw_tree1_prune[[name]] <- prune(bw_tree1[[name]],cp=     bw_tree1[[name]]$cptable[which.min(bw_tree1[[name]]$cptable[,"xerror"]),"CP"])
+  
+  
+}
+ 
+
+bw_tree1
+fancyRpartPlot(bw_tree1_prune[[1]])
+fancyRpartPlot(bw_tree1_prune[[2]])
+fancyRpartPlot(bw_tree1_prune[[3]])
+
+
+#pruned for splitting by cycle
+
+cycles <-  split(temp,temp$Cycle)
+
+ 
+bw_tree3=list()
+bw_tree3_prune <- list()
+for( name in names(cycles)) {
+  set.seed(501)
+  bw_tree3[[name]] <- rpart(factory_cp_level_nc_rate~.,data=cycles[[name]])
+  
+  bw_tree3_prune[[name]] <- prune(bw_tree3[[name]],cp=     bw_tree3[[name]]$cptable[which.min(bw_tree3[[name]]$cptable[,"xerror"]),"CP"])
+  
+  
+}
+ 
+
+bw_tree3
+fancyRpartPlot(bw_tree3_prune[[1]])
+fancyRpartPlot(bw_tree3_prune[[2]])
+fancyRpartPlot(bw_tree3_prune[[3]])
+
 ```
 
 
@@ -602,10 +659,136 @@ model = map(temp, ~ glmnet(factory_cp_level_nc_rate ~ firm_size, data = .))
 
 temp <- tempDataForest$ximp %>%
 nest(data = -c(Cycle,Country, Cluster)) %>%
-  mutate(boots = map(data, ~bootstraps(.x, times = 10, apparent = TRUE))) %>%
+  mutate(boots = map(data, ~bootstraps(.x, times = 100, apparent = TRUE))) %>%
   unnest(boots)%>%
   mutate(model = map(splits, ~lm(factory_cp_level_nc_rate ~ firm_size+femRatio, data = analysis(.))),
          coef_info = map(model, tidy))
+
+tempDataForest$ximp$Cycle <- as.numeric(as.character(tempDataForest$ximp$Cycle))
+tempDataForest$ximp$Factory.Assessed.ID <- as.factor(tempDataForest$ximp$Factory.Assessed.ID)
+test<- fold(
+  tempDataForest$ximp,
+  k = 10,
+  cat_col = "Country",
+  num_col = "Cycle",
+  id_col = "Factory.Assessed.ID"
+)
+
+full <- split(test,test$.folds)
+
+sub_countries <- createFolds(countries,list = TRUE, returnTrain = TRUE,k=100)
+sub_Cycles <- createFolds(Cycles,list = TRUE, returnTrain = TRUE,k=100)
+sub_ID <- createFolds(ID,list = TRUE, returnTrain = TRUE,k=100)
+sub_Cluster<- createFolds(Cluster,list = TRUE, returnTrain = TRUE,k=100)
+Cluster <- unique(tempDataForest$ximp$Cluster)
+countries <- unique(tempDataForest$ximp$Country)
+Cycles <- unique(tempDataForest$ximp$Cycle)
+ID <- unique(tempDataForest$ximp$Factory.Assessed.ID)
+for(i in seq(along = sub_countries)) {
+  ## Which subjects are in fold i
+ countries_in <- countries[sub_countries[[i]]]
+ Cycle_in <- Cycles[sub_Cycles[[i]]]
+ ID_in <- Cluster[sub_Cluster[[i]]]
+  ## which rows of the data correspond to those subjects
+  in_train[[i]] <- row_index[(tempDataForest$ximp$Country %in% countries_in & tempDataForest$ximp$Cycle %in% Cycle_in & tempDataForest$ximp$Cluster %in% ID_in)]
+  holdout[[i]]  <- row_index[!(tempDataForest$ximp$Country %in% countries_in & tempDataForest$ximp$Cycle %in% Cycle_in & tempDataForest$ximp$Cluster %in% ID_in)]  
+}
+
+
+ctrl <- trainControl(method = "cv",
+                     savePredictions = TRUE,
+                     index = in_train,
+                     indexOut = holdout)
+
+
+mod <- train(as.numeric(factory_cp_level_nc_rate) ~ ., data = tempDataForest$ximp[,!(names(tempDataForest$ximp) %in% c("Country","Cluster","Factory.Assessed.ID"))],
+             method = "glmnet", 
+             trControl = ctrl)
+varImportance <- function(data){
+    ## Model fitting: ##
+  ctrl <- trainControl(method = "cv",
+                     savePredictions = TRUE,
+                     index = in_train,
+                     indexOut = holdout)
+   mod <- train(as.numeric(factory_cp_level_nc_rate) ~ ., data = data,
+             method = "glmnet", 
+             trControl = ctrl)
+    varimp <- caret::varImp(mod)
+    importance <- t(varimp)
+}
+
+cycles <- 10
+dt.importance <- as.data.frame(zoo::rollapply(tempDataForest$ximp[,!(names(tempDataForest$ximp) %in% c("Cycle"))], 
+                                              FUN = varImportance,
+                                              width = 10000,
+                                              by.column = FALSE,
+                                              align = 'left'))
+```
+
+```{r}
+library("caTools")
+library(caret)
+set.seed(501)
+c <- which(sample.split( test$`Child Labour`$Country, group =test$.folds))
+t <-which(!sample.split( test$`Child Labour`$Country, group =test$.folds))
+# train <- c
+# test1 <- test[!c,]
+
+set.seed(42)
+ximp <- as.data.frame(tempDataForest$ximp)
+ximp$trainGen <- NULL
+ctrl <- trainControl(method = "timeslice",
+                     savePredictions = TRUE,
+                     index = c,
+                     indexOut = t)
+
+mod <- train(as.numeric(factory_cp_level_nc_rate) ~ ., data =test$`Child Labour`,
+             method = "glmnet",
+             horizon=3,
+             initialWindow = 9,
+             trControl = ctrl)
+
+
+
+glmnet_ex <- function(data, formula){
+  model <- train(formula, data,
+                 method = "glmnet",
+                 trControl = trainControl(method = "CV"),
+                 preProc = c("center","scale"),
+                 cluster.seed=500)
+  return(model)
+ }
+ 
+ 
+ formula = as.numeric(factory_cp_level_nc_rate)~.
+ 
+ models <- list()
+ varIMP <- list()
+ for (name in names(test)){
+  set.seed(500)
+ models[[name]] <- glmnet_ex(test[[name]],formula = formula)
+ varIMP[[name]] <- varImp(models[[name]],scale=F)
+ }
+ 
+MSE_train <- mean((test$`Child Labour`$factory_cp_level_nc_rate- predict(models$`Child Labour`, newdata = test$`Child Labour`))^2)
+
+pred_names <- names(test$`Child Labour`[,!names(test$`Child Labour`) %in% c("factory_cp_level_nc_rate")])
+perm_MSEs_train <- seq(0,length.out=NROW(pred_names))
+for ( i in 1:NROW(perm_MSEs_train)) {
+  perm_MSEs_train[i] <- NA
+  
+}
+
+names(perm_MSEs_train) <- pred_names
+for (i in pred_names) {
+  perm_MSEs_train[i] <- mean((test$y - predict(RF, newdata=test_temp))^2)
+  train_temp <- train
+  train_temp[ , i] <- sample(train[ , i])
+  perm_MSEs_test[i] <- mean((train$y - predict(RF, newdata=train_temp))^2)
+}
+
+ximp%>%
+  group_split
 
 ```
 
