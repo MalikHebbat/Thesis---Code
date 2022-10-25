@@ -1,0 +1,187 @@
+---
+title: "Model"
+output: html_notebook
+author: "Malik Hebbat"
+---
+
+Read the splitted data and get in shape 
+
+```{r}
+library(xts)
+library(quantmod)
+library(data.table)
+library(yuima)
+library(gtrendsR)
+library(glmnet)
+library(ranger)    
+library(pheatmap)  
+library(ggplot2)   
+library(reshape2)  
+library(vars)     
+library(dplyr)
+library(xtable)      
+library(progress)    
+library(stargazer)   
+library(corrplot)    
+library(lavaan)      
+library(semPlot)     
+library(ggrepel) 
+load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/Splitted.RData")
+
+temp <- list()
+for(name in names(CL)) {
+  
+  temp[[name]]<- CL[[name]] %>%
+    group_by(Factory.Assessed.ID) %>%
+    slice(which(!duplicated(Cycle)))
+  
+  
+}
+
+CLX <- temp
+
+split_cluster<- function(data,Cluster) {
+  require(tidyverse)
+
+  num_cols <- bin_cols <- bin_cols_aggr <- num_cols_aggr <- temp <- dem <- list()
+
+
+  for(name in names(data)) {
+
+    data[[name]]$Factory.Assessed.ID <- as.numeric(as.character(data[[name]]$Factory.Assessed.ID))
+    num_cols[[name]] <- data[[name]][unlist(lapply(data[[name]],is.numeric))]
+    num_cols_aggr[[name]] <- aggregate(num_cols[[name]],list(num_cols[[name]]$Factory.Assessed.ID), mean, na.rm=T,na.action = na.pass)
+
+
+    data[[name]]$Factory.Assessed.ID <- as.factor(data[[name]]$Factory.Assessed.ID)
+    data[[name]]$Country<- as.character(data[[name]]$Country)
+    bin_cols[[name]] <- data[[name]][unlist(lapply(data[[name]],is.factor))]
+
+    bin_cols[[name]]$Cluster <- NULL
+    bin_cols[[name]]$Country <- NULL
+    bin_cols[[name]]$Cycle <- NULL
+    bin_cols[[name]]$Peer.Grouping.Enabled <- NULL
+    bin_cols[[name]] <- as.data.frame(bind_rows(lapply(bin_cols[[name]], function(x) {as.numeric(as.character(x))})))
+    bin_cols_aggr[[name]] <- aggregate(bin_cols[[name]],list(bin_cols[[name]]$Factory.Assessed.ID), mean, na.rm=T,na.action = na.pass)
+
+
+    #bin_cols_aggr[[name]] <-  as.data.frame(bind_rows(lapply(bin_cols_aggr[[name]], function(x) {as.factor(x)})))
+    bin_cols_aggr[[name]]$Factory.Assessed.ID <-  as.numeric(bin_cols_aggr[[name]]$Factory.Assessed.ID)
+    dem[[name]] <-  unique(data[[name]][,c("Country","Factory.Assessed.ID")])
+    dem[[name]]$Country <- as.factor(dem[[name]]$Country)
+    temp[[name]] <-as.data.frame(left_join(num_cols_aggr[[name]],bin_cols_aggr[[name]],by="Factory.Assessed.ID"))
+    dem[[name]]$Factory.Assessed.ID <- as.numeric(as.character(dem[[name]]$Factory.Assessed.ID))
+    temp[[name]] <- as.data.frame(left_join(temp[[name]],dem[[name]],by ="Factory.Assessed.ID"))
+  }
+  return(temp)
+}
+
+temp1<- split_cluster(CLX)
+
+OSH <- temp1$`Occupational Safety and Health`
+OSH$Group.1.x <- NULL
+OSH$Group.1.y <- NULL
+OSH$total_cp_nc <- NULL
+OSH$total_cps <- NULL
+names(OSH)
+OSH_imp <- missForest(OSH,maxiter=5,ntree=100,verbose=T )$ximp
+OSH_imp$Cycle <- NULL
+OSH_imp <- OSH_imp%>%
+  mutate(
+    tminWage=as.factor(if_else(tminWage>0,1,0)),
+    refBarg=as.factor(if_else(refBarg>0,1,0)),
+    formUnion=as.factor(if_else(formUnion>0,1,0)),
+    AccessUnion=as.factor(if_else(AccessUnion>0,1,0)),
+    punUnion=as.factor(if_else(punUnion>0,1,0)),
+    trainChem=as.factor(if_else(trainChem>0,1,0)),
+    trainFirst=as.factor(if_else(trainFirst>0,1,0)),
+    trainGen=as.factor(if_else(trainGen>0,1,0)),
+    trainu16=as.factor(if_else(trainu16>0,1,0)),
+    prefSup = as.factor(prefSup),
+    contr=as.factor(contr),
+    subContr=as.factor(subContr)
+  )
+
+
+```
+
+
+
+The models:
+
+```{r}
+#ensr
+model_OSH<- dummy_cols(
+OSH_imp,
+select_columns =c("Country","prefSup","contr","subContr","refBarg",
+                  "formUnion","AccessUnion","punUnion","trainChem",
+                  "trainFirst","trainGen","trainu16","tminWage"),
+remove_first_dummy = T,
+remove_most_frequent_dummy = FALSE,
+ignore_na = FALSE,
+split = NULL,
+remove_selected_columns = T
+)
+set.seed(42)
+formulax <- paste(names(model_OSH[-c(1,2,4)]), collapse='+')
+formulax <- paste("0",formulax,sep='+')
+mod_OSH_temp <- 
+bind_rows(lapply(model_OSH[unlist(lapply(model_OSH,is.integer))], function(x) {as.numeric(as.factor(x))}))
+model_OSH[unlist(lapply(model_OSH,is.integer))] <- mod_OSH_temp
+
+y_matrix <- as.matrix(model_OSH$factory_cp_level_nc_rate)
+x_matrix <- model.matrix(factory_cp_level_nc_rate~firm_size+NumBarg+tminWage_1+percUnion+trainAppr+trainApprMen+trainMen+trainWorker+HPI_rank+Pop+Life_Exp+Wellbeing+Ecological_Footprint+HPI+Biocapacity+GDP_per_capita+counts_conflict+counts_air+firm_age+femRatio+Country_Cambodia+Country_Egypt+Country_Ethiopia+Country_Haiti+Country_Indonesia+Country_Jordan+Country_Nicaragua+Country_Vietnam+prefSup_1+contr_1+subContr_1+refBarg_1+formUnion_1+AccessUnion_1+punUnion_1+trainChem_1+trainFirst_1+trainGen_+trainu16_1-0,model_OSH)
+ensr_obj <- ensr(y = y_matrix, x = x_matrix, standardize = F,lambda=250)
+library(ggforce)
+plot(ensr_obj) +
+  theme_minimal() +
+  facet_zoom(x = 0.50 < alpha & alpha < 0.90)
+summary(ensr_obj) [, .SD[cvm == min(cvm)], by = nzero]
+plot(ensr_obj,type=c(1,2))
+coef(ensr_obj)
+
+#caret
+
+library(caret)
+library(glmnet)
+
+set.seed(1234)
+custom <- trainControl(method = "repeatedcv",
+
+                       number = 10,
+
+                       repeats = 5,
+
+                       verboseIter = TRUE)
+
+#fitting Elastic Net Regression model
+set.seed(1234)
+en <- train(factory_cp_level_nc_rate~firm_size+NumBarg+tminWage_1+percUnion+trainAppr+trainApprMen+trainMen+trainWorker+HPI_rank+Pop+Life_Exp+Wellbeing+Ecological_Footprint+HPI+Biocapacity+GDP_per_capita+counts_conflict+counts_air+firm_age+femRatio+Country_Cambodia+Country_Egypt+Country_Ethiopia+Country_Haiti+Country_Indonesia+Country_Jordan+Country_Nicaragua+Country_Vietnam+prefSup_1+contr_1+subContr_1+refBarg_1+formUnion_1+AccessUnion_1+punUnion_1+trainChem_1+trainFirst_1+trainGen_+trainu16_1-0,
+            model_OSH,
+            method='glmnet',
+            tuneGrid =expand.grid(alpha=seq(0,1,length=10),
+                                  lambda = seq(0.0001,0.2,length=5)),
+            trControl=custom)
+en
+mean(en$resample$RMSE)
+plot(en, main = "Elastic Net Regression")
+plot(varImp(en,scale=TRUE))
+
+
+#glmnet
+
+y <- model_OSH$factory_cp_level_nc_rate
+x_matrix <- model.matrix(factory_cp_level_nc_rate~firm_size+NumBarg+tminWage_1+percUnion+trainAppr+trainApprMen+trainMen+trainWorker+HPI_rank+Pop+Life_Exp+Wellbeing+Ecological_Footprint+HPI+Biocapacity+GDP_per_capita+counts_conflict+counts_air+firm_age+femRatio+Country_Cambodia+Country_Egypt+Country_Ethiopia+Country_Haiti+Country_Indonesia+Country_Jordan+Country_Nicaragua+Country_Vietnam+prefSup_1+contr_1+subContr_1+refBarg_1+formUnion_1+AccessUnion_1+punUnion_1+trainChem_1+trainFirst_1+trainGen_+trainu16_1-0,model_OSH)
+
+
+cvi <- cv.glmnet(x=x_matrix, y=y, grouped=FALSE,lambda=seq(1e-06,1,length.out=250))
+set.seed(123)
+inet <- glmnet(x=x_matrix,y=y,lambda=seq(1e-06,1,length.out=250),intercept=F)
+
+icf.1se <- coef(inet, s=cvi$lambda.1se)
+icf.min <- coef(inet, s=cvi$lambda.min)
+plot(inet)
+plot(varImp(inet,scale=TRUE))
+```
+
+
