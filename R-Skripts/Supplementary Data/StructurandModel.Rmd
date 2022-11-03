@@ -1,0 +1,757 @@
+---
+title: "Model"
+output: html_notebook
+author: "Malik Hebbat"
+---
+
+Read the splitted data and get in shape 
+
+```{r}
+library(xts)
+library(quantmod)
+library(data.table)
+library(yuima)
+library(gtrendsR)
+library(glmnet)
+library(ranger)    
+library(pheatmap)  
+library(ggplot2)   
+library(reshape2)  
+library(vars)     
+library(dplyr)
+library(xtable)      
+library(progress)    
+library(stargazer)   
+library(corrplot)    
+library(lavaan)      
+library(semPlot)     
+library(ggrepel) 
+load("/Users/malik/Dropbox (GALILEO)/Master Thesis/RManual-master/Data Sets/Splitted.RData.RData")
+
+temp <- list()
+for(name in names(CL)) {
+  
+  temp[[name]]<- CL[[name]] %>%
+    group_by(Factory.Assessed.ID) %>%
+    slice(which(!duplicated(seasnum_year)))
+  
+  
+}
+
+CLX <- temp
+
+# split_cluster<- function(data,Cluster) {
+#   require(tidyverse)
+# 
+#   num_cols <- bin_cols <- bin_cols_aggr <- num_cols_aggr <- temp <- dem <- list()
+# 
+# 
+#   for(name in names(data)) {
+#     
+#     num_cols[[name]] <- data[[name]][unlist(lapply(data[[name]],is.numeric))]
+#     num_cols[[name]]$season_year <- data[[name]]$season_year
+#         num_cols[[name]]$Country<- as.factor(data[[name]]$Country)
+# 
+#     num_cols_aggr[[name]] <- aggregate(num_cols[[name]],list(num_cols[[name]]$Country,num_cols[[name]]$season_year), mean,
+#                                         na.rm=T,na.action = na.pass)
+# 
+# 
+#     
+#     data[[name]]$Country<- as.character(data[[name]]$Country)
+#     bin_cols[[name]] <- data[[name]][unlist(lapply(data[[name]],is.factor))]
+# 
+#     
+#     bin_cols[[name]]$Cluster <- NULL
+#     bin_cols[[name]]$Country <- NULL
+#     bin_cols[[name]]$Cycle <- NULL
+#     bin_cols[[name]]$Peer.Grouping.Enabled <- NULL
+#     bin_cols[[name]] <- as.data.frame(bind_rows(lapply(bin_cols[[name]],
+#                                                        function(x) {as.numeric(as.character(x))})))
+#     bin_cols[[name]]$season_year<- as.factor(data[[name]]$season_year)
+#     bin_cols[[name]]$Country<- as.factor(data[[name]]$Country)
+# 
+#     bin_cols_aggr[[name]] <- aggregate(bin_cols[[name]],list(bin_cols[[name]]$Country,
+#                                                              bin_cols[[name]]$season_year), mean, 
+#                                                         na.rm=T,na.action = na.pass)
+# 
+# 
+#     #bin_cols_aggr[[name]] <-  as.data.frame(bind_rows(lapply(bin_cols_aggr[[name]], function(x) {as.factor(x)})))
+#     bin_cols_aggr[[name]]$Factory.Assessed.ID <-  as.numeric(bin_cols_aggr[[name]]$Factory.Assessed.ID)
+#     temp[[name]] <-as.data.frame(left_join(num_cols_aggr[[name]],bin_cols_aggr[[name]],by="Factory.Assessed.ID"))
+#   }
+#   return(temp)
+# }
+
+
+
+OSH <- CLX$`Occupational Safety and Health`
+
+
+num_cols <- OSH[,unlist(lapply(OSH,is.numeric))]
+num_cols$Country <- OSH$Country
+num_cols$season_year <- OSH$season_year
+
+
+library(missForest)
+OSH_imp <- list()
+OSH$Country <- as.factor(OSH$Country)
+OSH$Factory.Assessed.Name <- NULL
+OSH$season_year <- as.factor(OSH$season_year)
+OSH$Section <- NULL
+OSH$Division <- NULL
+OSH$First.Product <- NULL
+OSH$Datasets <- NULL
+OSH$Status <- NULL
+OSH$Latest.Cycle <- NULL
+OSH$Cycle.Start.Date <- NULL
+OSH$Continent <- NULL
+OSH$ISO <- NULL
+
+
+
+OSH$Season <- NA
+OSH$Season[grepl("Q1", OSH$seasnum_year, fixed = TRUE)] <- 1
+OSH$Season[grepl("Q2", OSH$seasnum_year, fixed = TRUE)] <- 2
+OSH$Season[grepl("Q3", OSH$seasnum_year, fixed = TRUE)] <- 3
+OSH$Season[grepl("Q4", OSH$seasnum_year, fixed = TRUE)] <- 4
+
+OSH$Season <- factor(OSH$Season,labels = c("Spring","Summer","Autmn","Winter"),ordered=T)
+
+OSH$Season_year <- factor(paste(parse_number(as.character(OSH$seasnum_year)),OSH$Season,sep="-"))
+
+OSH
+library(missForest)
+set.seed(500)
+OSH$seasnum_year <- factor(OSH$seasnum_year,ordered = T)
+OSH_imp <- missForest(as.data.frame(OSH),maxiter=5,ntree=100,verbose=T,replace=T)$ximp
+
+num_cols <- OSH_imp[,unlist(lapply(OSH_imp,is.numeric))]
+num_cols$Country <- OSH_imp$Country
+num_cols$seasnum_year <- OSH_imp$seasnum_year
+
+num_cols_aggr <- aggregate(num_cols,by=list(num_cols$Country,num_cols$seasnum_year),mean,na.rm=T)
+
+bin_cols <- OSH_imp[,unlist(lapply(OSH_imp,is.factor))]
+bin_cols$Country <- bin_cols$Cluster <- bin_cols$season_year <- NULL
+bin_cols<- as.data.frame(bind_rows(lapply(bin_cols,
+                                                       function(x) {as.numeric(as.character(x))})))
+
+bin_cols$seasnum_year<- as.factor(OSH_imp$seasnum_year)
+    bin_cols$Country<- as.factor(OSH_imp$Country)
+bin_cols_aggr <- aggregate(bin_cols,by=list(bin_cols$Country,bin_cols$seasnum_year),mean,na.rm=T)
+
+temp <- inner_join(num_cols_aggr,bin_cols_aggr,by=c("Group.1","Group.2"))
+
+temp
+
+OSH_viet <- temp[temp$Group.1=="Vietnam",]
+OSH_viet$Year <- parse_number(as.character(OSH_viet$Group.2))
+OSH_viet <- OSH_viet %>%
+  arrange(Year,Group.2)
+
+rownames(OSH_viet) <- OSH_viet$Group.2
+OSH_viet$Group.1 <-OSH_viet$Group.2 <- OSH_viet$Country.x <- OSH_viet$Country.y <- OSH_viet$season_year.y <- OSH_viet$season_year.x <- OSH_viet$Factory.Assessed.ID <- OSH_viet$total_cps <- OSH_viet$total_cp_nc <- OSH_viet$Year <- OSH_viet$ID <- OSH_viet$Male<- OSH_viet$Female<-OSH_viet$Life_Exp<-OSH_viet$Pop<-OSH_viet$Biocapacity<-OSH_viet$Wellbeing  <-OSH_viet$HPI <-OSH_viet$HPI_rank<-OSH_viet$Ecological_Footprint<-OSH_viet$GDP_per_capita<- NULL
+
+OSH_viet <- abs(OSH_viet)
+
+idates <- rownames(OSH_viet)
+lambda <- seq(1e-8,100,length=2500)
+imsem <- NULL
+imse1 <- NULL
+imsear <- NULL
+intercepti <- FALSE
+for(ialpha in seq(0,1,length=25)){
+#for(ialpha in seq(0,1,length=5)){
+  icf1 <- NULL
+  icfm <- NULL
+  ircf1 <- NULL
+  ircfm <- NULL
+  ip1 <- NULL
+  ipm <- NULL
+  il1 <- NULL
+  ilm <- NULL
+  iar <- NULL
+  ni <- nrow(OSH_viet)
+  ioffset <-0.1*NROW(OSH_viet)
+  
+  for(i in ioffset:(ni-1)){
+    rg <- (i-ioffset+1):i
+    y <- OSH_viet$factory_cp_level_nc_rate[rg]
+    tmp.iar <- try(as.numeric(predict(arima(y,order=c(1,0,1)),n.ahead = 1)$pred), TRUE)
+    if(class(tmp.iar)[1]!="try-error"){
+      iar <- c(iar,tmp.iar)
+    } else {
+      iar <- c(iar,as.numeric(NA))
+    }
+    x <- as.matrix(OSH_viet[rg,colnames(OSH_viet)!="factory_cp_level_nc_rate"])
+    x.new <- as.matrix(OSH_viet[i+1,colnames(OSH_viet)!="factory_cp_level_nc_rate"],nrow=1)
+    set.seed(123)
+    cvi <- cv.glmnet(x=x, y=y, alpha=ialpha, intercept=intercepti, lambda=lambda, grouped=FALSE)
+    set.seed(123)
+    inet <- glmnet(x=x, y=y, alpha=ialpha,  intercept=intercepti, lambda=lambda)
+    icf.1se <- coef(inet, s=cvi$lambda.1se)
+    icf.min <- coef(inet, s=cvi$lambda.min)
+    t1 <- data.frame(date=idates[i], t(as.matrix(icf.1se)))
+    colnames(t1)[2] <- "Intercept"
+    t2 <- data.frame(date=idates[i], t(as.matrix(icf.min)))
+    colnames(t2)[2] <- "Intercept"
+    icf1 <- rbind(icf1, t1)
+    icfm <- rbind(icfm, t2)
+    ip1 <- c(ip1, predict(inet, newx = x.new,s = cvi$lambda.1se))
+    ipm <- c(ipm, predict(inet, newx = x.new,s = cvi$lambda.min))
+    il1 <- c(il1, cvi$lambda.1se)
+    ilm <- c(ilm, cvi$lambda.min)
+
+    vv <- c("factory_cp_level_nc_rate",colnames(x)[which(as.numeric(icf.1se)!=0) -1])
+    if(length(vv)>1){
+      set.seed(123)
+      rang <- ranger(factory_cp_level_nc_rate~., data=OSH_viet[rg,vv], importance="impurity",num.trees = 2500)
+      imp <- sort(importance(rang), decreasing = TRUE)
+      rank <- (length(imp):1)/length(imp)
+      names(rank) <- names(imp)
+      tmprank <- t1[,-2]
+      tmprank[1,-1] <- 0
+      tmprank[1, names(rank)] <- rank
+      ircf1 <- rbind(ircf1, tmprank)
+    }
+  
+    vv <- c("factory_cp_level_nc_rate",colnames(x)[which(as.numeric(icf.min)!=0) -1])
+    if(length(vv)>1){
+      set.seed(123)
+      rang <- ranger(factory_cp_level_nc_rate~., data=OSH_viet[rg,vv], importance="impurity")
+      imp <- sort(importance(rang), decreasing = TRUE)
+      rank <- (length(imp):1)/length(imp)
+      names(rank) <- names(imp)
+      tmprank <- t2[,-2]
+      tmprank[1,-1] <- 0
+      tmprank[1, names(rank)] <- rank
+      ircfm <- rbind(ircfm, tmprank)
+    }
+  }
+
+  ipt <- OSH_viet$factory_cp_level_nc_rate[(ioffset+1):ni]
+  id <- data.frame(true=ipt,p1=ip1,pm=ipm,ar=iar)
+  imse1 <- c(imse1, mean((ipt-ip1)^2))
+  imsem <- c(imsem, mean((ipt-ipm)^2))
+  imsear <- c(imsear, mean((ipt-iar)^2,na.rm=TRUE))
+  print(cor(id,use="pairwise"))
+}
+
+imse1
+imsem
+imsear
+imse1/imsear
+
+date <- OSH_viet$seasnum_year.x
+itoplot <- xts(id[,c("true","p1","ar")],order.by="date")
+rownames(id) <- rownames(OSH_viet)[(ioffset+1):ni]
+autoplot(id[,c("true","p1","ar")],facets = NULL) +xlab("")
+
+
+id$date <- factor(idates[(ioffset+1):ni],levels=idates[(ioffset+1):ni])
+id$Year <- as.numeric(parse_number(as.character(id$date)))
+
+
+
+p <- id%>%
+  rename("faccplnc"=true,
+         "DynENet"=p1,
+         "Arima"=ar)%>%
+  melt(id.vars = c("Year","date"),measure.vars = c("faccplnc","DynENet","Arima"))%>%
+ggplot(.)+geom_line(aes(x=date,y=value,group=variable,color=variable))+theme(axis.text.x = element_text(angle = 45, hjust = 1))+ geom_vline(xintercept = c(3,7,11,15,19,23,27,31,35,39),linetype="dotted")
+
+iA <- icf1[,colnames(OSH_viet[-1])]
+iB <- ircf1[,colnames(OSH_viet[-1])]
+inn <- ncol(iA) 
+isumm <- NULL
+ for(i in 1:inn){
+  iavg <- sum(iA[,i])
+  iravg <- mean(iB[,i])
+  iravgpos <- mean(iB[iB[,i]>0,i])
+  isumm <- rbind(isumm, cbind(iavg,iravg,iravgpos))
+}
+
+colnames(isumm) <- c("Seasons","rank","posrank")
+rownames(isumm) <- colnames(iA)
+isumm <- data.frame(isumm)
+isumm$var <- colnames(iA)
+isumm$country <- "Vietnam"
+pdf(file="/Users/malik/Documents/GitHub/Thesis---Code/Plots/isummary.pdf",width=9,height=6)
+ggplot(data=isumm,aes(x=Seasons,y=rank,label=var)) + 
+  geom_point() + 
+  geom_text_repel(  point.padding = unit(0.35, "lines"),max.overlaps = 50) +
+  xlab(sprintf("number of times variable is selected over %d analyses",nrow(iA)))+
+  ylab("average relative rank")
+dev.off()  
+
+pdf(file="/Users/malik/Documents/GitHub/Thesis---Code/Plots/isummaryPos.pdf",width=9,height=6)
+ggplot(data=isumm,aes(x=Seasons,y=posrank,label=var)) + 
+  geom_point() + 
+  geom_text_repel(  point.padding = unit(0.35, "lines"),max.overlaps = 50) +
+  xlab(sprintf("number of times variable is selected over %d analyses",nrow(iA)))+
+  ylab("average relative rank")
+dev.off()  
+
+
+
+# temp1<- split_cluster(CLX)
+# temp2 <- bind_rows(temp1,.id = "id")
+# OSH <- temp1$`Occupational Safety and Health`
+# OSH$Group.1.x <- NULL
+# OSH$Group.1.y <- NULL
+# OSH$total_cp_nc <- NULL
+# OSH$total_cps <- NULL
+# names(OSH)
+
+bigmat <- ircf1[,-1]   
+rownames(bigmat) <- ircfm$date
+#bigmat <- bigmat[,-match("fac",colnames(bigmat))]
+bigmat[is.na(bigmat) | bigmat==0] <- 0
+dp <- colSums(bigmat)
+dp
+dim(bigmat)
+bigmat <- t(bigmat)
+
+
+
+Firm_general <- c("firm_size","Male","Female","lenPart","femRatio","firm_age")
+Union <- c("AccessUnion","formUnion","punUnion","refBarg","NumBarg","percUnion")
+Wage <- c("tminWage")
+Safety <- c("trainFirst","trainu16","trainAppr","trainApprMen","trainMen","trainWorker","trainChem")
+Country <- c("HPI","HPI_rank","Wellbeing","Ecological_Footprint","Biocapacity","GDP_per_capita","Life_exp","Pop","counts_air","counts_conflict") 
+business <- c("Peer.Grouping.Enabled","prefSup","contr","subContr")
+
+
+
+group <- rep("", nrow(bigmat))
+
+group[match(Firm_general, rownames(bigmat))] <- "general Firm Indicators"
+group[match(Union, rownames(bigmat))] <- "Union"
+group[match(Wage, rownames(bigmat))] <- "Minimum Wage"
+group[match(Safety, rownames(bigmat))] <- "Safety"
+group[match(Country, rownames(bigmat))] <- "Country"
+group[match(business, rownames(bigmat))] <- "Business" 
+
+
+annotation_row = data.frame( DataClass = factor(group,ordered=T))
+rownames(annotation_row) = rownames(bigmat)
+
+row.order <- try(hclust(dist(bigmat))$order, TRUE)
+dat_new <- bigmat[row.order, ]
+nba.m <- reshape2::melt(dat_new)
+mycol <- colorRampPalette(c("white", "steelblue", "red"))(4)
+
+bb <- ggplot(nba.m, aes(Var2, Var1)) + 
+  geom_tile(aes(fill = value), colour = "gray50") + 
+  scale_fill_gradient2(midpoint=0.5, low = "white", mid = "steelblue",high = "red")+
+  labs(x = "", y = "Selected variables", fill="Rank")+
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  #scale_x_date(date_minor_breaks = "1 month")+
+  ggtitle("FacCPNC-Vietnam")
+bb
+pdf(file="/Users/malik/Documents/GitHub/Thesis---Code/Plots/Heatmap_Vietnam.pdf",width=10, height=5)
+print(bb)
+dev.off()
+
+clabels <- colnames(bigmat)
+#ipos <- unique(c(seq(1,length(clabels),by=7),length(clabels)))
+
+annotation_row <- annotation_row%>%
+  arrange(DataClass)
+
+big_mat_ord<- bigmat[rownames(annotation_row), ]
+
+#clabels[-ipos] <- ""
+pheatmap(big_mat_ord, cluster_cols = FALSE, cluster_rows = F,
+             #  clustering_distance_rows =  "correlation",
+            #  color = c("white", "steelblue", "red"),
+             color=cols,
+             # legend = FALSE,
+         cellwidth=15,
+             labels_col = clabels,
+             annotation_row = annotation_row,
+             treeheight_row = 0, treeheight_col = 0,
+             fontsize = 12,
+             fontsize_col = 12,
+             border_color = "gray",
+             main = sprintf("%s : relative importance of predictors selected by Dynamic Elastic Net","Vietnam"),
+             angle_col=45,filename = "/Users/malik/Documents/GitHub/Thesis---Code/Plots/Heatmap_vietnam1.pdf",
+            width=17,height =10
+         )
+
+ bigmat <- icf1[,-(1:2)]
+rownames(bigmat) <- icfm$date
+
+
+icols <- makeColorRampPalette(c("red", "white",    # distances 0 to 3 colored from white to red
+                                "white", "green"), # distances 3 to max(distmat) colored from green to black
+                              1-max(bigmat)/diff(range(bigmat))  ,
+                              100)
+
+bigmat[is.na(bigmat) | bigmat==0] <- 0
+dp <- colSums(bigmat)
+dp
+dim(bigmat)
+bigmat <- t(bigmat)
+group <- rep("", nrow(bigmat))
+
+group[match(Firm_general, rownames(bigmat))] <- "general Firm Indicators"
+group[match(Union, rownames(bigmat))] <- "Union"
+group[match(Wage, rownames(bigmat))] <- "Minimum Wage"
+group[match(Safety, rownames(bigmat))] <- "Safety"
+group[match(Country, rownames(bigmat))] <- "Country"
+group[match(business, rownames(bigmat))] <- "Business" 
+
+annotation_row = data.frame( DataClass = factor(group,ordered = T))
+rownames(annotation_row) = rownames(bigmat)
+row.order <- try(hclust(dist(bigmat))$order, TRUE)
+dat_new <- bigmat[row.order, ] # re-order matrix accoring to clustering
+
+nba.m <- reshape2::melt(dat_new)
+
+mycol <- colorRampPalette(c("red", "white", "blue"))(7)
+
+Mx <- max(range(bigmat))*1.05
+mx <- min(range(bigmat))*1.05
+sq <- c(seq(mx,-1e-5, length= 4),  0,seq(1e-5,Mx,length=4))
+nba.m$cat <- cut(nba.m$value,breaks=sq)
+lv <- levels(nba.m$cat)
+nba.m$cat <- as.character(nba.m$cat)
+nba.m$cat[nba.m$value==0] <- "0"
+nba.m$cat[nba.m$cat == "(-1e-05,0]"] <- lv[3]
+nba.m$cat[nba.m$cat == "(0,1e-05]"] <- lv[6]
+nba.m$cat <- sub("-1e-05","0",nba.m$cat)
+nba.m$cat <- sub("1e-05","0",nba.m$cat)
+lv2 <- lv
+lv2 <- sub("-1e-05","0",lv2)
+lv2 <- sub("1e-05","0",lv2)
+lv2 <- c(lv2[1:3],"0",lv2[-(1:5)])
+
+nba.m$cat2 <- factor(nba.m$cat, levels = lv2, ordered = TRUE )
+table(nba.m$cat2)
+nba.m$Var2 <- as.Date(nba.m$Var2)
+hclust(dist(bigmat)) -> oo
+nba.m$Var1 <- factor(nba.m$Var1, 
+                     levels = rev(oo$labels[oo$order]),ordered = TRUE)
+
+aa <- ggplot(nba.m, aes(Var2, Var1)) + 
+  geom_tile( aes(fill = cat2),
+             colour = "darkgray") + 
+  scale_fill_manual(values=mycol, 
+                    breaks=levels(nba.m$cat2) )+
+  labs(x = "", y = "Variable", fill="Size of\nstandardized\ncoefficents",
+       title="FacCPNC-Vietnam")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+aa
+pdf("/Users/malik/Documents/GitHub/Thesis---Code/Plots/Coefs_vietnam.pdf",width=17, height=10, pointsize = 12)
+print(aa)
+dev.off()
+
+
+#Indonesia
+OSH_indo <- temp[temp$Group.1=="Cambodia",]
+OSH_indo$Year <- parse_number(as.character(OSH_indo$Group.2))
+OSH_indo <- OSH_indo %>%
+  arrange(Year,Group.2)
+
+OSH_indo$Season <- rownames(OSH_indo)
+p <- ggplot(OSH_indo,aes(x=Season,y=factory_cp_level_nc_rate,group=1))+
+  geom_line(stat="identity")
+
+rownames(OSH_indo) <- OSH_indo$Group.2
+OSH_indo$Group.1 <-OSH_indo$Group.2 <- OSH_indo$Country.x <- OSH_indo$Country.y <- OSH_indo$season_year.y <- OSH_indo$season_year.x <- OSH_indo$Factory.Assessed.ID <- OSH_indo$total_cps <- OSH_indo$total_cp_nc <- OSH_indo$Year <- OSH_indo$ID <- OSH_indo$Male<- OSH_indo$Female<-OSH_indo$Life_Exp<-OSH_indo$Pop<-OSH_indo$Biocapacity<-OSH_indo$Wellbeing  <-OSH_indo$HPI <-OSH_indo$HPI_rank<-OSH_indo$Ecological_Footprint<-OSH_indo$GDP_per_capita<-OSH_indo$lenPart<-OSH_indo$Season <- NULL
+#OSH_indo$lenPart <- abs(OSH_indo$lenPart)
+
+idates <- rownames(OSH_indo)
+lambda <- seq(1e-8,100,length=2500)
+imsem <- NULL
+imse1 <- NULL
+imsear <- NULL
+intercepti <- FALSE
+#for(ialpha in c(0,0.5,1)){
+for(ialpha in  seq(0,1,length=25)){
+  icf1 <- NULL
+  icfm <- NULL
+  ircf1 <- NULL
+  ircfm <- NULL
+  ip1 <- NULL
+  ipm <- NULL
+  il1 <- NULL
+  ilm <- NULL
+  iar <- NULL
+  ni <- nrow(OSH_indo)
+  ioffset <-0.1*NROW(OSH_indo)
+  
+  for(i in ioffset:(ni-1)){
+    rg <- (i-ioffset+1):i
+    y <- OSH_indo$factory_cp_level_nc_rate[rg]
+    tmp.iar <- try(as.numeric(predict(arima(y,order=c(1,0,1)),n.ahead = 1)$pred), TRUE)
+    if(class(tmp.iar)[1]!="try-error"){
+      iar <- c(iar,tmp.iar)
+    } else {
+      iar <- c(iar,as.numeric(NA))
+    }
+    x <- as.matrix(OSH_indo[rg,colnames(OSH_indo)!="factory_cp_level_nc_rate"])
+    x.new <- as.matrix(OSH_indo[i+1,colnames(OSH_indo)!="factory_cp_level_nc_rate"],nrow=1)
+    set.seed(123)
+    cvi <- cv.glmnet(x=x, y=y, alpha=ialpha, intercept=intercepti, lambda=lambda, grouped=FALSE)
+    set.seed(123)
+    inet <- glmnet(x=x, y=y, alpha=ialpha,  intercept=intercepti, lambda=lambda)
+    icf.1se <- coef(inet, s=cvi$lambda.1se)
+    icf.min <- coef(inet, s=cvi$lambda.min)
+    t1 <- data.frame(date=idates[i], t(as.matrix(icf.1se)))
+    colnames(t1)[2] <- "Intercept"
+    t2 <- data.frame(date=idates[i], t(as.matrix(icf.min)))
+    colnames(t2)[2] <- "Intercept"
+    icf1 <- rbind(icf1, t1)
+    icfm <- rbind(icfm, t2)
+    ip1 <- c(ip1, predict(inet, newx = x.new,s = cvi$lambda.1se))
+    ipm <- c(ipm, predict(inet, newx = x.new,s = cvi$lambda.min))
+    il1 <- c(il1, cvi$lambda.1se)
+    ilm <- c(ilm, cvi$lambda.min)
+
+    vv <- c("factory_cp_level_nc_rate",colnames(x)[which(as.numeric(icf.1se)!=0) -1])
+    if(length(vv)>1){
+      set.seed(123)
+      rang <- ranger(factory_cp_level_nc_rate~., data=OSH_indo[rg,vv], importance="impurity",num.trees = 500)
+      imp <- sort(importance(rang), decreasing = TRUE)
+      rank <- (length(imp):1)/length(imp)
+      names(rank) <- names(imp)
+      tmprank <- t1[,-2]
+      tmprank[1,-1] <- 0
+      tmprank[1, names(rank)] <- rank
+      ircf1 <- rbind(ircf1, tmprank)
+    }
+  
+    vv <- c("factory_cp_level_nc_rate",colnames(x)[which(as.numeric(icf.min)!=0) -1])
+    if(length(vv)>1){
+      set.seed(123)
+      rang <- ranger(factory_cp_level_nc_rate~., data=OSH_indo[rg,vv], importance="impurity")
+      imp <- sort(importance(rang), decreasing = TRUE)
+      rank <- (length(imp):1)/length(imp)
+      names(rank) <- names(imp)
+      tmprank <- t2[,-2]
+      tmprank[1,-1] <- 0
+      tmprank[1, names(rank)] <- rank
+      ircfm <- rbind(ircfm, tmprank)
+    }
+  }
+
+  ipt <- OSH_indo$factory_cp_level_nc_rate[(ioffset+1):ni]
+  id <- data.frame(true=ipt,p1=ip1,pm=ipm,ar=iar)
+  imse1 <- c(imse1, mean((ipt-ip1)^2))
+  imsem <- c(imsem, mean((ipt-ipm)^2))
+  imsear <- c(imsear, mean((ipt-iar)^2,na.rm=TRUE))
+  print(cor(id,use="pairwise"))
+}
+
+imse1
+imsem
+imsear
+imse1/imsear
+
+itoplot <- xts(id[,c("true","p1","ar")],order.by="date")
+rownames(id) <- rownames(OSH_indo)[(ioffset+1):ni]
+autoplot(id[,c("true","p1","ar")],facets = NULL) +xlab("")
+
+
+id$date <- idates[(ioffset+1):ni]
+id$Year <- parse_number(as.character(id$date))
+p <- id%>%
+  arrange(Year)%>%
+  melt(id.vars = c("Year","date"),measure.vars = c("true","p1","pm","ar"))%>%
+  arrange(Year)%>%
+ggplot(.)+geom_line(aes(x=date,y=value,group=variable))+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+iA <- icf1[,colnames(OSH_indo[-1])]
+iB <- ircf1[,colnames(OSH_indo[-1])]
+inn <- ncol(iA) 
+isumm <- NULL
+ for(i in 1:inn){
+  iavg <- sum(iA[,i])
+  iravg <- mean(iB[,i])
+  iravgpos <- mean(iB[iB[,i]>0,i])
+  isumm <- rbind(isumm, cbind(iavg,iravg,iravgpos))
+}
+
+colnames(isumm) <- c("Seasons","rank","posrank")
+rownames(isumm) <- colnames(iA)
+isumm <- data.frame(isumm)
+isumm$var <- colnames(iA)
+isumm$country <- "Vietnam"
+pdf(file="/Users/malik/Documents/GitHub/Thesis---Code/Plots/isummary_indo.pdf",width=9,height=6)
+ggplot(data=isumm,aes(x=Seasons,y=rank,label=var)) + 
+  geom_point() + 
+  geom_text_repel(  point.padding = unit(0.35, "lines"),max.overlaps = 50) +
+  xlab(sprintf("number of times variable is selected over %d analyses",nrow(iA)))+
+  ylab("average relative rank")
+dev.off()  
+
+pdf(file="/Users/malik/Documents/GitHub/Thesis---Code/Plots/isummaryPos_indo.pdf",width=9,height=6)
+ggplot(data=isumm,aes(x=Seasons,y=posrank,label=var)) + 
+  geom_point() + 
+  geom_text_repel(  point.padding = unit(0.35, "lines"),max.overlaps = 50) +
+  xlab(sprintf("number of times variable is selected over %d analyses",nrow(iA)))+
+  ylab("average relative rank")
+dev.off()  
+
+
+
+# temp1<- split_cluster(CLX)
+# temp2 <- bind_rows(temp1,.id = "id")
+# OSH <- temp1$`Occupational Safety and Health`
+# OSH$Group.1.x <- NULL
+# OSH$Group.1.y <- NULL
+# OSH$total_cp_nc <- NULL
+# OSH$total_cps <- NULL
+# names(OSH)
+
+bigmat <- ircf1[,-1]   
+rownames(bigmat) <- ircfm$date
+#bigmat <- bigmat[,-match("fac",colnames(bigmat))]
+bigmat[is.na(bigmat) | bigmat==0] <- 0
+dp <- colSums(bigmat)
+dp
+dim(bigmat)
+bigmat <- t(bigmat)
+
+
+
+Firm_general <- c("firm_size","Male","Female","lenPart","femRatio","firm_age")
+Union <- c("AccessUnion","formUnion","punUnion","refBarg","NumBarg","percUnion")
+Wage <- c("tminWage")
+Safety <- c("trainFirst","trainu16","trainAppr","trainApprMen","trainMen","trainWorker","trainChem")
+Country <- c("HPI","HPI_rank","Wellbeing","Ecological_Footprint","Biocapacity","GDP_per_capita","Life_exp","Pop","counts_air","counts_conflict") 
+business <- c("Peer.Grouping.Enabled","prefSup","contr","subContr")
+
+
+
+group <- rep("", nrow(bigmat))
+
+group[match(Firm_general, rownames(bigmat))] <- "general Firm Indicators"
+group[match(Union, rownames(bigmat))] <- "Union"
+group[match(Wage, rownames(bigmat))] <- "Minimum Wage"
+group[match(Safety, rownames(bigmat))] <- "Safety"
+group[match(Country, rownames(bigmat))] <- "Country"
+group[match(business, rownames(bigmat))] <- "Business" 
+
+
+annotation_row = data.frame( DataClass = factor(group,ordered=T))
+rownames(annotation_row) = rownames(bigmat)
+
+row.order <- try(hclust(dist(bigmat))$order, TRUE)
+dat_new <- bigmat[row.order, ]
+nba.m <- reshape2::melt(dat_new)
+mycol <- colorRampPalette(c("white", "steelblue", "red"))(4)
+
+bb <- ggplot(nba.m, aes(Var2, Var1)) + 
+  geom_tile(aes(fill = value), colour = "gray50") + 
+  scale_fill_gradient2(midpoint=0.5, low = "white", mid = "steelblue",high = "red")+
+  labs(x = "", y = "Selected variables", fill="Rank")+
+  theme(axis.text.x=element_text(angle=45, hjust=1)) +
+  #scale_x_date(date_minor_breaks = "1 month")+
+  ggtitle("FacCPNC-Vietnam")
+bb
+pdf(file="/Users/malik/Documents/GitHub/Thesis---Code/Plots/Heatmap_Indonesia.pdf",width=10, height=5)
+print(bb)
+dev.off()
+
+
+clabels <- colnames(bigmat)
+#ipos <- unique(c(seq(1,length(clabels),by=7),length(clabels)))
+
+annotation_row <- annotation_row%>%
+  arrange(DataClass)
+
+big_mat_ord<- bigmat[rownames(annotation_row), ]
+
+#clabels[-ipos] <- ""
+pheatmap(big_mat_ord, cluster_cols = FALSE, cluster_rows = F,
+             #  clustering_distance_rows =  "correlation",
+            #  color = c("white", "steelblue", "red"),
+             color=cols,
+             # legend = FALSE,
+         cellwidth=15,
+             labels_col = clabels,
+             annotation_row = annotation_row,
+             treeheight_row = 0, treeheight_col = 0,
+             fontsize = 12,
+             fontsize_col = 12,
+             border_color = "gray",
+             main = sprintf("%s : relative importance of predictors selected by Dynamic Elastic Net","Vietnam"),
+             angle_col=45,filename = "/Users/malik/Documents/GitHub/Thesis---Code/Plots/Heatmap_Indonesia1.pdf",
+            width=17,height =10
+         )
+
+ bigmat <- icf1[,-(1:2)]
+rownames(bigmat) <- icfm$date
+
+
+icols <- makeColorRampPalette(c("red", "white",    # distances 0 to 3 colored from white to red
+                                "white", "green"), # distances 3 to max(distmat) colored from green to black
+                              1-max(bigmat)/diff(range(bigmat))  ,
+                              100)
+
+bigmat[is.na(bigmat) | bigmat==0] <- 0
+dp <- colSums(bigmat)
+dp
+dim(bigmat)
+bigmat <- t(bigmat)
+group <- rep("", nrow(bigmat))
+
+group[match(Firm_general, rownames(bigmat))] <- "general Firm Indicators"
+group[match(Union, rownames(bigmat))] <- "Union"
+group[match(Wage, rownames(bigmat))] <- "Minimum Wage"
+group[match(Safety, rownames(bigmat))] <- "Safety"
+group[match(Country, rownames(bigmat))] <- "Country"
+group[match(business, rownames(bigmat))] <- "Business" 
+
+annotation_row = data.frame( DataClass = factor(group,ordered = T))
+rownames(annotation_row) = rownames(bigmat)
+row.order <- try(hclust(dist(bigmat))$order, TRUE)
+dat_new <- bigmat[row.order, ] # re-order matrix accoring to clustering
+
+nba.m <- reshape2::melt(dat_new)
+
+mycol <- colorRampPalette(c("red", "white", "blue"))(7)
+
+Mx <- max(range(bigmat))*1.05
+mx <- min(range(bigmat))*1.05
+sq <- c(seq(mx,-1e-5, length= 4),  0,seq(1e-5,Mx,length=4))
+nba.m$cat <- cut(nba.m$value,breaks=sq)
+lv <- levels(nba.m$cat)
+nba.m$cat <- as.character(nba.m$cat)
+nba.m$cat[nba.m$value==0] <- "0"
+nba.m$cat[nba.m$cat == "(-1e-05,0]"] <- lv[3]
+nba.m$cat[nba.m$cat == "(0,1e-05]"] <- lv[6]
+nba.m$cat <- sub("-1e-05","0",nba.m$cat)
+nba.m$cat <- sub("1e-05","0",nba.m$cat)
+lv2 <- lv
+lv2 <- sub("-1e-05","0",lv2)
+lv2 <- sub("1e-05","0",lv2)
+lv2 <- c(lv2[1:3],"0",lv2[-(1:5)])
+
+nba.m$cat2 <- factor(nba.m$cat, levels = lv2, ordered = TRUE )
+table(nba.m$cat2)
+nba.m$Var2 <- as.Date(nba.m$Var2)
+hclust(dist(bigmat)) -> oo
+nba.m$Var1 <- factor(nba.m$Var1, 
+                     levels = rev(oo$labels[oo$order]),ordered = TRUE)
+
+aa <- ggplot(nba.m, aes(Var2, Var1)) + 
+  geom_tile( aes(fill = cat2),
+             colour = "darkgray") + 
+  scale_fill_manual(values=mycol, 
+                    breaks=levels(nba.m$cat2) )+
+  labs(x = "", y = "Variable", fill="Size of\nstandardized\ncoefficents",
+       title="FacCPNC-Vietnam")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+aa
+pdf("/Users/malik/Documents/GitHub/Thesis---Code/Plots/Coefs_vietnam.pdf",width=17, height=10, pointsize = 12)
+print(aa)
+dev.off()
+
+
+
+````
+
