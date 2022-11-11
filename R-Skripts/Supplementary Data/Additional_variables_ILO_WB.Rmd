@@ -1,0 +1,301 @@
+---
+title: "Additional variables for Master thesis"
+author: "Fabio Thoma"
+date: Sys.time()
+output: html_document
+---
+
+
+```{r, message = FALSE, echo=FALSE,warning=FALSE}
+library(tidyverse)
+library(rvest)
+library(readxl)
+library(ggplot2)
+library(DT)
+library(haven)
+library(dplyr)
+library(countrycode)
+library(wbstats)
+library(Rilostat)
+library(rnaturalearth)
+
+```
+
+# World Bank Data
+## Function 
+
+```{r, warning=FALSE, message = FALSE}
+
+
+# Using Wbstat
+
+
+# Setting up a function for all other World Bank data information
+
+# x determines the variable and y the name of the variable
+
+wb_data_function <- function(x,y){
+
+variable <- x
+
+
+variable_countries <- wb_data(variable)
+
+# Only data between 2012 and 202
+df <- variable_countries %>%  filter(date %in% (2012:2022)) 
+
+names(df)[5] <- y 
+
+df <- df %>% dplyr::select(1:5) # Selecting 5 first variables
+
+df
+  
+}
+```
+
+
+
+# 1) Coverage of social safety net programs (% of population)
+
+
+```{r, warning=FALSE, message = FALSE}
+
+ssn_cov <-  wb_data_function("per_allsp.cov_pop_tot","Coverage of social safety net programs (% of population)")
+
+```
+
+
+## Economic data
+### 2) GDP per capita
+
+
+```{r, message = FALSE, warning=FALSE}
+GDP_per_capita <- wb_data_function("NY.GDP.PCAP.CD","GDP per capita")
+```
+
+### 3) $ 1.9 a day (2011 PPP) (%)
+
+```{r, message = FALSE, warning=FALSE}
+Poverty_1.9_USD <- wb_data_function("SI.POV.DDAY","Poverty_1.9_USD")
+```
+
+
+### 4) Access to electricity
+
+
+```{r, message = FALSE, warning=FALSE}
+Access_electricity <- wb_data_function("EG.ELC.ACCS.ZS","Access_electricity")
+```
+
+
+### 5) CO2 emissions (metric tons per capita)
+
+```{r, message = FALSE, warning=FALSE}
+Co2_emissions <- wb_data_function("EN.ATM.CO2E.PC","Co2_emissions")
+```
+
+
+
+## Merge the World Bank Data
+```{r,warning=FALSE, message = FALSE}
+
+
+library(plyr)
+
+# Using the plyr package
+
+wb_data <- plyr::join_all(list(ssn_cov,GDP_per_capita,Poverty_1.9_USD,Access_electricity,Co2_emissions), by=c('iso3c','date','country','iso2c'), type='left')
+
+wb_data <- left_join(wb_data,wb_countries[ , c("iso3c", "region","income")],by="iso3c")
+
+
+
+```
+
+
+# ILO data
+
+## Labour data
+
+
+## Function
+
+```{r,warning=FALSE, message = FALSE}
+# General formula to retrieve variables (2021 until 2020)
+
+# x = ILO variable of concern
+# y = classif1 
+# z = Name of variable
+
+r_stat_funtion <- function(ILO_variable,classif=NULL,name){
+df <- get_ilostat(ILO_variable, cache = FALSE)
+# Not disaggregated men/women and only 2012 to 2022
+if("sex" %in% colnames(df)){
+    df <- df %>% dplyr::filter(sex == "SEX_T") 
+}
+
+df <- df %>% dplyr::filter(time %in% (2012:2022))
+
+if("classif1" %in% colnames(df)){
+
+  df <- df %>% dplyr::filter(classif1 == classif)
+}
+
+df <- df %>% dplyr::select(ref_area,time,obs_value)
+names(df)[3] <- name
+clean_ilostat_cache()
+
+df
+}
+
+```
+
+## Working poor
+### SDG indicator 1.1.1 - Working poverty rate (percentage of employed living below US$1.90 PPP) 
+
+```{r,warning=FALSE, message = FALSE}
+# Starting with the working poor, all persons +15 years old 
+
+Working_poverty <- r_stat_funtion("SDG_0111_SEX_AGE_RT_A","AGE_YTHADULT_YGE15","Working Poverty rate (%)")
+
+```
+
+## Minimum wage
+
+```{r,warning=FALSE, message = FALSE}
+
+
+# I use Minimum wage (2017 PPP $) as variable 
+
+Minimum_wage <- r_stat_funtion("EAR_4MMN_CUR_NB_A","CUR_TYPE_PPP","Minimum wage (2017 PPP $)")
+```
+
+### SDG indicator 8.3.1 - Proportion of informal employment in total employment
+
+
+```{r,warning=FALSE, message = FALSE}
+
+Informal_empl <- r_stat_funtion("SDG_0831_SEX_ECO_RT_A","ECO_AGNAG_TOTAL", "Proportion of informal employment in total employment (%)")
+
+```
+
+
+### SDG 8.5.2 Unemployment rate 
+
+
+```{r,warning=FALSE, message = FALSE}
+#x <- get_ilostat("SDG_0852_SEX_AGE_RT_A", cache = FALSE)
+
+# All persons above 15 years old
+
+Unemployment_rate <- r_stat_funtion("SDG_0852_SEX_AGE_RT_A","AGE_YTHADULT_YGE15", "Unemployment rate (%) ")
+
+
+```
+
+## Social protection
+
+There are several variables that can be considered. I will focus on the variable  "Population covered by at least one social protection benefit" for now (more can be added)	
+
+### Population covered by at least one social protection benefit	
+
+```{r,warning=FALSE, message = FALSE}
+
+
+SP_systems <- r_stat_funtion("SDG_0131_SEX_SOC_RT_A","SOC_CONTIG_TOTAL","Proportion of population covered by social protection systems (%)")
+
+
+
+```
+
+## Labour inspectors
+
+### Number of labour inspectors by sex (thousands)
+
+```{r,warning=FALSE, message = FALSE}
+
+# Can be disaggregated by sex, but here only total number is reported
+
+Labour_inspectors <- r_stat_funtion(ILO_variable="LAI_INSP_SEX_NB_A",name="Number of labour inspectors  (thousands)")
+
+# Not too sure this is valuable? 
+
+```
+
+
+### Number of labour inspection visits to workplaces during the year
+
+```{r,warning=FALSE, message = FALSE}
+
+Labour_inspection_visits <- r_stat_funtion(ILO_variable="LAI_VIST_NOC_NB_A",name="Number of labour inspection visits to workplaces during the year")
+
+
+
+
+```
+
+
+### Labour inspection visits per inspector 
+
+
+```{r,warning=FALSE, message = FALSE}
+
+Inspector_visits <- r_stat_funtion(ILO_variable="LAI_VDIN_NOC_RT_A",name="Labour inspection visits per inspector")
+
+```
+### Registered workplaces that could be selected for labour inspection
+
+```{r,warning=FALSE, message = FALSE}
+
+Registered_workplaces <- r_stat_funtion(ILO_variable="LAI_WOPL_NOC_NB_A",name="Registered workplaces that could be selected for labour inspection")
+
+```
+
+### SDG indicator 8.8.2 - Level of national compliance with labour rights (freedom of association and collective bargaining)
+
+```{r,warning=FALSE, message = FALSE}
+
+National_compliance_FACB <- get_ilostat("SDG_0882_NOC_RT_A", cache = FALSE)
+
+National_compliance_FACB <- National_compliance_FACB %>% dplyr::select(1,4,5) %>% dplyr::filter(time %in% (2012:2022))
+
+names(National_compliance_FACB)[3] <- "National_compliance_FACB"
+
+```
+
+
+
+## Merge ILO Variables
+
+```{r,warning=FALSE, message = FALSE}
+
+ilo_data <- plyr::join_all(list(Working_poverty,Minimum_wage,Informal_empl,Unemployment_rate,SP_systems,Labour_inspectors,Labour_inspection_visits,Inspector_visits, Registered_workplaces, National_compliance_FACB), by=c('ref_area','time'), type='full')
+
+
+ilo_data$time <- as.numeric(ilo_data$time)
+
+
+# Change Kosovo : 
+
+#ilo_data$ref_area <- str_replace_all(ilo_data$ref_area,"KOS","XKX")
+
+# Source
+
+#ilo_data$source <- "ILO Stat"
+
+```
+
+# Merge ILO and WB data
+
+```{r,warning=FALSE, message = FALSE}
+
+wb_ilo_data <- left_join(wb_data,ilo_data,by = c("iso3c"="ref_area","date"="time"))
+
+#library(countrycode)
+
+
+#wb_ilo_data$UN_region <-  countrycode(wb_ilo_data$iso3c,origin="iso3c",destination = "un.region.name")
+
+
+```
+
