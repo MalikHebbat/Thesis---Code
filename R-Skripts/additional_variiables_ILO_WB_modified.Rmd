@@ -1,0 +1,331 @@
+---
+title: "Additional variables for Master thesis"
+author: "Fabio Thoma"
+date: Sys.time()
+output: html_document
+---
+
+
+```{r, message = FALSE, echo=FALSE,warning=FALSE}
+library(tidyverse)
+library(rvest)
+library(readxl)
+library(ggplot2)
+library(DT)
+library(haven)
+library(dplyr)
+library(countrycode)
+library(wbstats)
+library(Rilostat)
+library(rnaturalearth)
+```
+
+# World Bank Data
+## Function 
+
+```{r, warning=FALSE, message = FALSE}
+# Using Wbstat
+# Setting up a function for all other World Bank data information
+# x determines the variable and y the name of the variable
+wb_data_function <- function(x,y,country="Vietnam"){
+  require(tempdisagg)
+  require(lubridate)
+  variable <- x
+  variable_countries <- ts(wb_data(variable,country = country,start_date = 2010, end_date = 2022),start = 2010)
+  # Only data between 2012 and 202
+  df <- variable_countries
+  names(df)[5] <- y 
+  df <- df[,1:5] # Selecting 5 first variables
+  df_temp <- df[,5]
+  pred <- predict(td(df_temp~1,method="denton-cholette",conversion = "mean"),na.action=na.omit)
+  pred
+  temp<- data.frame(Y=as.matrix(pred), date=time(pred))
+  temp$date <- as.yearqtr(temp$date, format = "%Y.%q")
+  names(temp) <- make.names(c(y,"date"))
+  temp$Country=country
+  temp
+}
+```
+
+
+
+# 1) Coverage of social safety net programs (% of population)
+
+
+```{r, warning=FALSE, message = FALSE}
+countries <- c("Vietnam","Indonesia","Cambodia")
+
+GDP_per_capita <- Co2_emissions<- Access_electricity <- list()
+
+for (country in countries) {
+## Economic data
+### 1) GDP per capita
+GDP_per_capita[[country]] <- wb_data_function("NY.GDP.PCAP.CD","GDP per capita",country=country)
+
+### 2) Access to electricity
+Access_electricity[[country]] <- wb_data_function("EG.ELC.ACCS.ZS","Access_electricity",country=country)
+
+### 3) CO2 emissions (metric tons per capita)
+Co2_emissions[[country]] <- wb_data_function("EN.ATM.CO2E.PC","Co2_emissions",country=country)
+}
+
+GDP_per_capita <- bind_rows(GDP_per_capita)
+Access_electricity <- bind_rows(Access_electricity)
+Co2_emissions <- bind_rows(Co2_emissions)
+
+wb_data <- plyr::join_all(list(GDP_per_capita,Access_electricity,Co2_emissions), by=c('date','Country'), type='left')
+
+```
+
+
+## Economic data
+### 2) GDP per capita
+
+
+```{r, message = FALSE, warning=FALSE}
+# GDP_per_capita <- wb_data_function("NY.GDP.PCAP.CD","GDP per capita")
+```
+
+### 3) $ 1.9 a day (2011 PPP) (%)
+
+```{r, message = FALSE, warning=FALSE}
+# Poverty_1.9_USD <- wb_data_function("SI.POV.DDAY","Poverty_1.9_USD")
+```
+
+
+### 4) Access to electricity
+
+
+```{r, message = FALSE, warning=FALSE}
+# Access_electricity <- wb_data_function("EG.ELC.ACCS.ZS","Access_electricity")
+```
+
+
+### 5) CO2 emissions (metric tons per capita)
+
+```{r, message = FALSE, warning=FALSE}
+# Co2_emissions <- wb_data_function("EN.ATM.CO2E.PC","Co2_emissions")
+```
+
+
+
+## Merge the World Bank Data
+```{r,warning=FALSE, message = FALSE}
+library(plyr)
+# Using the plyr package
+wb_data <- plyr::join_all(list(GDP_per_capita,Access_electricity,Co2_emissions), by=c('date','Country'))
+```
+
+
+# ILO data
+
+## Labour data
+
+
+## Function
+
+```{r,warning=FALSE, message = FALSE}
+# General formula to retrieve variables (2021 until 2020)
+# x = ILO variable of concern
+# y = classif1 
+# z = Name of variable
+r_stat_funtion <- function(ILO_variable,classif=NULL,name){
+df <- get_ilostat(ILO_variable, cache = FALSE)
+# Not disaggregated men/women and only 2012 to 2022
+if("sex" %in% colnames(df)){
+    df <- df %>% dplyr::filter(sex == "SEX_T") 
+}
+df <- df %>% dplyr::filter(time %in% (2012:2022))
+if("classif1" %in% colnames(df)){
+  df <- df %>% dplyr::filter(classif1 == classif)
+}
+df <- df %>% dplyr::select(ref_area,time,obs_value)
+names(df)[3] <- name
+clean_ilostat_cache()
+df
+}
+```
+
+## Working poor
+### SDG indicator 1.1.1 - Working poverty rate (percentage of employed living below US$1.90 PPP) 
+
+```{r,warning=FALSE, message = FALSE}
+# Starting with the working poor, all persons +15 years old 
+Working_poverty <- list()
+df <- df_temp <-pred <- temp <-  list()
+countries <- c("VNM","IDN","KHM")
+for (country in countries) {
+Working_poverty[[country]] <- r_stat_funtion("SDG_0111_SEX_AGE_RT_A","AGE_YTHADULT_YGE15","Working Poverty rate (%)")%>%
+  filter(ref_area==country)
+df[[country]] <- ts(Working_poverty[[country]],start=2010)
+
+df_temp[[country]] <- df[[country]][,3]
+pred[[country]] <- predict(td(df_temp[[country]]~1,method="denton-cholette",conversion = "mean"),na.action=na.omit)
+temp[[country]]<- data.frame(Y=as.matrix(pred[[country]]), date=time(pred[[country]]))
+temp[[country]]$date <- as.yearqtr(temp[[country]]$date, format = "%Y.%q")
+names(temp[[country]]) <- make.names(c("Working_poverty","date"))
+temp[[country]]$Country=country
+}
+
+Working_poverty <- bind_rows(temp)
+```
+
+## Minimum wage
+
+```{r,warning=FALSE, message = FALSE}
+# I use Minimum wage (2017 PPP $) as variable 
+Minimum_wage <- list()
+df <- df_temp <-pred <- temp <-  list()
+countries <- c("VNM","IDN")
+for (country in countries) {
+  Minimum_wage[[country]] <- r_stat_funtion("EAR_4MMN_CUR_NB_A","CUR_TYPE_PPP","Minimum wage (2017 PPP $)")%>%
+    filter(ref_area==country)
+  df[[country]] <- ts(Minimum_wage[[country]],start=2010)
+  
+  df_temp[[country]] <- df[[country]][,3]
+  pred[[country]] <- predict(td(df_temp[[country]]~1,method="denton-cholette",conversion = "mean"),na.action=na.omit)
+  temp[[country]]<- data.frame(Y=as.matrix(pred[[country]]), date=time(pred[[country]]))
+  temp[[country]]$date <- as.yearqtr(temp[[country]]$date, format = "%Y.%q")
+  names(temp[[country]]) <- make.names(c("Minimum_wage","date"))
+  temp[[country]]$Country=country
+}
+Minimum_wage <- bind_rows(temp)
+```
+
+### SDG indicator 8.3.1 - Proportion of informal employment in total employment
+
+
+```{r,warning=FALSE, message = FALSE}
+Informal_empl <- list()
+df <- df_temp <-pred <- temp <-  list()
+countries <- c("VNM","IDN","KHM")
+for (country in countries) {
+  Informal_empl[[country]] <- r_stat_funtion("SDG_0831_SEX_ECO_RT_A","ECO_AGNAG_TOTAL", "Proportion of informal employment in total employment (%)")%>%
+    filter(ref_area==country)
+  df[[country]] <- ts(Informal_empl[[country]],start=2010)
+  
+  df_temp[[country]] <- df[[country]][,3]
+  pred[[country]] <- predict(td(df_temp[[country]]~1,method="denton-cholette",conversion = "mean"),na.action=na.omit)
+  temp[[country]]<- data.frame(Y=as.matrix(pred[[country]]), date=time(pred[[country]]))
+  temp[[country]]$date <- as.yearqtr(temp[[country]]$date, format = "%Y.%q")
+  names(temp[[country]]) <- make.names(c("Informal_empl","date"))
+  temp[[country]]$Country=country
+}
+  
+Informal_empl <- bind_rows(temp)
+```
+
+
+### SDG 8.5.2 Unemployment rate 
+
+
+```{r,warning=FALSE, message = FALSE}
+#x <- get_ilostat("SDG_0852_SEX_AGE_RT_A", cache = FALSE)
+# All persons above 15 years old
+Unemployment_rate <-  list()
+df <- df_temp <-pred <- temp <-  list()
+countries <- c("VNM","IDN","KHM")
+for (country in countries) {
+  Unemployment_rate[[country]] <- r_stat_funtion("SDG_0852_SEX_AGE_RT_A","AGE_YTHADULT_YGE15", "Unemployment rate (%) ")%>%
+    filter(ref_area==country)
+  df[[country]] <- ts(Unemployment_rate[[country]],start=2010)
+  
+  df_temp[[country]] <- df[[country]][,3]
+  pred[[country]] <- predict(td(df_temp[[country]]~1,method="denton-cholette",conversion = "mean"),na.action=na.omit)
+  temp[[country]]<- data.frame(Y=as.matrix(pred[[country]]), date=time(pred[[country]]))
+  temp[[country]]$date <- as.yearqtr(temp[[country]]$date, format = "%Y.%q")
+  names(temp[[country]]) <- make.names(c("Unemployment_rate","date"))
+  temp[[country]]$Country=country
+}
+  
+Unemployment_rate <- bind_rows(temp)
+```
+
+## Social protection
+
+There are several variables that can be considered. I will focus on the variable  "Population covered by at least one social protection benefit" for now (more can be added)	
+
+### Population covered by at least one social protection benefit	
+
+```{r,warning=FALSE, message = FALSE}
+SP_systems <- list()
+df <- df_temp <-pred <- temp <-  list()
+countries <- c("VNM","IDN","KHM")
+for (country in countries) {
+  SP_systems[[country]] <- r_stat_funtion("SDG_0131_SEX_SOC_RT_A","SOC_CONTIG_TOTAL","Proportion of population covered by social protection systems (%)")%>%
+    filter(ref_area==country)
+  df[[country]] <- ts(SP_systems[[country]],start=2010)
+  
+  df_temp[[country]] <- df[[country]][,3]
+  pred[[country]] <- predict(td(df_temp[[country]]~1,method="denton-cholette",conversion = "mean"),na.action=na.omit)
+  temp[[country]]<- data.frame(Y=as.matrix(pred[[country]]), date=time(pred[[country]]))
+  temp[[country]]$date <- as.yearqtr(temp[[country]]$date, format = "%Y.%q")
+  names(temp[[country]]) <- make.names(c("SP_systems","date"))
+  temp[[country]]$Country=country
+}
+  
+SP_systems <- bind_rows(temp)
+```
+
+
+#NOT AVAILABLE FOR OUR DATA FOR ALL COUNTRIES OR SPECIFIC
+## Labour inspectors
+
+### Number of labour inspectors by sex (thousands)
+
+```{r,warning=FALSE, message = FALSE}
+# Can be disaggregated by sex, but here only total number is reported
+# Labour_inspectors <- r_stat_funtion(ILO_variable="LAI_INSP_SEX_NB_A",name="Number of labour inspectors  (thousands)")
+# Not too sure this is valuable? 
+```
+
+
+### Number of labour inspection visits to workplaces during the year
+
+```{r,warning=FALSE, message = FALSE}
+# Labour_inspection_visits <- r_stat_funtion(ILO_variable="LAI_VIST_NOC_NB_A",name="Number of labour inspection visits to workplaces during the year")
+```
+
+
+### Labour inspection visits per inspector 
+
+
+```{r,warning=FALSE, message = FALSE}
+# Inspector_visits <- r_stat_funtion(ILO_variable="LAI_VDIN_NOC_RT_A",name="Labour inspection visits per inspector")
+```
+### Registered workplaces that could be selected for labour inspection
+
+```{r,warning=FALSE, message = FALSE}
+# Registered_workplaces <- r_stat_funtion(ILO_variable="LAI_WOPL_NOC_NB_A",name="Registered workplaces that could be selected for labour inspection")
+```
+
+### SDG indicator 8.8.2 - Level of national compliance with labour rights (freedom of association and collective bargaining)
+
+```{r,warning=FALSE, message = FALSE}
+# National_compliance_FACB <- get_ilostat("SDG_0882_NOC_RT_A", cache = FALSE)
+# National_compliance_FACB <- National_compliance_FACB %>% dplyr::select(1,4,5) %>% dplyr::filter(time %in% (2012:2022))
+# names(National_compliance_FACB)[3] <- "National_compliance_FACB"
+```
+
+
+
+## Merge ILO Variables
+
+```{r,warning=FALSE, message = FALSE}
+ilo_data <- plyr::join_all(list(Working_poverty,Minimum_wage,Informal_empl,Unemployment_rate,SP_systems), by=c('Country','date'), type='full')
+ilo_data$Country <- gsub("VNM","Vietnam",ilo_data$Country)
+ilo_data$Country <- gsub("IDN","Indonesia",ilo_data$Country)
+ilo_data$Country <- gsub("KHM","Cambodia",ilo_data$Country)
+
+# Change Kosovo : 
+#ilo_data$ref_area <- str_replace_all(ilo_data$ref_area,"KOS","XKX")
+# Source
+#ilo_data$source <- "ILO Stat"
+```
+
+# Merge ILO and WB data
+
+```{r,warning=FALSE, message = FALSE}
+wb_ilo_data <- left_join(wb_data,ilo_data,by = c("Country","date"))
+#library(countrycode)
+#wb_ilo_data$UN_region <-  countrycode(wb_ilo_data$iso3c,origin="iso3c",destination = "un.region.name")
