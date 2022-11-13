@@ -18,6 +18,7 @@ library(countrycode)
 library(wbstats)
 library(Rilostat)
 library(rnaturalearth)
+library(imputeTS) # for imputeTS to work on MacOS, you have to install the latest ggplot2 version 
 ```
 
 # World Bank Data
@@ -197,11 +198,28 @@ Minimum_wage <- bind_rows(temp)
 
 ```{r,warning=FALSE, message = FALSE}
 Informal_empl <- list()
+Informal_empl_1 <- list()
 df <- df_temp <-pred <- temp <-  list()
 countries <- c("VNM","IDN","KHM")
 for (country in countries) {
-  Informal_empl[[country]] <- r_stat_funtion("SDG_0831_SEX_ECO_RT_A","ECO_AGNAG_TOTAL", "Proportion of informal employment in total employment (%)")%>%
+  Informal_empl[[country]] <- r_stat_funtion("SDG_0831_SEX_ECO_RT_A","ECO_AGNAG_TOTAL", "Informal")%>%
     filter(ref_area==country)
+    
+  
+  Informal_empl[[country]]$time <- as.numeric(Informal_empl[[country]]$time)
+   
+  Informal_empl_1[[country]] <- data.frame(ref_area=country,time=as.numeric(2010:max(Informal_empl[[country]]$time)),  "Informal" = NA)
+  
+  Informal_empl[[country]]  <-  Informal_empl_1[[country]] %>% 
+    left_join(Informal_empl[[country]], by = c("ref_area","time")) %>% 
+    mutate(Informal = coalesce(Informal.x, Informal.y)) %>% 
+    select(-Informal.x, -Informal.y)
+  
+  Informal_empl[[country]]$Informal <- na_interpolation(Informal_empl[[country]]$Informal)
+  
+  
+  
+  
   df[[country]] <- ts(Informal_empl[[country]],start=2010)
   
   df_temp[[country]] <- df[[country]][,3]
