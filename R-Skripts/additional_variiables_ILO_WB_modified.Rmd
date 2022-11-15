@@ -149,6 +149,7 @@ df
 
 ## Working poor
 ### SDG indicator 1.1.1 - Working poverty rate (percentage of employed living below US$1.90 PPP) 
+# This looks good no edits needed
 
 ```{r,warning=FALSE, message = FALSE}
 # Starting with the working poor, all persons +15 years old 
@@ -171,16 +172,32 @@ temp[[country]]$Country=country
 Working_poverty <- bind_rows(temp)
 ```
 
-## Minimum wage
+## Minimum wage - Edited
 
 ```{r,warning=FALSE, message = FALSE}
 # I use Minimum wage (2017 PPP $) as variable 
 Minimum_wage <- list()
+Minimum_wage_1 <- list()
+
 df <- df_temp <-pred <- temp <-  list()
 countries <- c("VNM","IDN")
 for (country in countries) {
-  Minimum_wage[[country]] <- r_stat_funtion("EAR_4MMN_CUR_NB_A","CUR_TYPE_PPP","Minimum wage (2017 PPP $)")%>%
+  Minimum_wage[[country]] <- r_stat_funtion("EAR_4MMN_CUR_NB_A","CUR_TYPE_PPP","Minimum_wage")%>%
     filter(ref_area==country)
+    
+    Minimum_wage[[country]]$time <- as.numeric(Minimum_wage[[country]]$time)
+  
+  Minimum_wage_1[[country]] <- data.frame(ref_area=country,time=as.numeric(2010:max(Minimum_wage[[country]]$time)),  "Minimum_wage" = NA)
+  
+  Minimum_wage[[country]]  <-  Minimum_wage_1[[country]] %>% 
+    left_join(Minimum_wage[[country]], by = c("ref_area","time")) %>% 
+    mutate(Minimum_wage = coalesce(Minimum_wage.x, Minimum_wage.y)) %>% 
+    select(-Minimum_wage.x, -Minimum_wage.y)
+  
+  Minimum_wage[[country]]$Minimum_wage <- na_interpolation(Minimum_wage[[country]]$Minimum_wage)
+  
+  
+    
   df[[country]] <- ts(Minimum_wage[[country]],start=2010)
   
   df_temp[[country]] <- df[[country]][,3]
@@ -241,11 +258,32 @@ Informal_empl <- bind_rows(temp)
 #x <- get_ilostat("SDG_0852_SEX_AGE_RT_A", cache = FALSE)
 # All persons above 15 years old
 Unemployment_rate <-  list()
+Unemployment_rate_1 <-  list()
+
+
 df <- df_temp <-pred <- temp <-  list()
 countries <- c("VNM","IDN","KHM")
 for (country in countries) {
-  Unemployment_rate[[country]] <- r_stat_funtion("SDG_0852_SEX_AGE_RT_A","AGE_YTHADULT_YGE15", "Unemployment rate (%) ")%>%
+  Unemployment_rate[[country]] <- r_stat_funtion("SDG_0852_SEX_AGE_RT_A","AGE_YTHADULT_YGE15", "Unemployment")%>%
     filter(ref_area==country)
+    
+    
+    
+  Unemployment_rate[[country]]$time <- as.numeric(Unemployment_rate[[country]]$time)
+  
+  Unemployment_rate_1[[country]] <- data.frame(ref_area=country,time=as.numeric(2010:max(Unemployment_rate[[country]]$time)),  "Unemployment" = NA)
+  
+  Unemployment_rate[[country]]  <-  Unemployment_rate_1[[country]] %>% 
+    left_join(Unemployment_rate[[country]], by = c("ref_area","time")) %>% 
+    mutate(Unemployment = coalesce(Unemployment.x, Unemployment.y)) %>% 
+    select(-Unemployment.x, -Unemployment.y)
+  
+  Unemployment_rate[[country]]$Unemployment <- na_interpolation(Unemployment_rate[[country]]$Unemployment)
+  
+  
+  
+    
+    
   df[[country]] <- ts(Unemployment_rate[[country]],start=2010)
   
   df_temp[[country]] <- df[[country]][,3]
@@ -263,7 +301,7 @@ Unemployment_rate <- bind_rows(temp)
 
 There are several variables that can be considered. I will focus on the variable  "Population covered by at least one social protection benefit" for now (more can be added)	
 
-### Population covered by at least one social protection benefit	
+### Population covered by at least one social protection benefit	# Suggest not to take it as we have very few data points
 
 ```{r,warning=FALSE, message = FALSE}
 SP_systems <- list()
