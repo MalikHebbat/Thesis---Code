@@ -1,5 +1,5 @@
 #Authors: Malik Hebbat, Benjamin Schumacher, Fabio Thoma,  Pinar Ucar
-#The script loads the raw BW-Data 
+#The script loads the raw data, does manipulations, modelling and plotting of paper described methods 
 
 #The script was tested on 12th of december 2022 with the following configuration
 
