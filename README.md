@@ -79,14 +79,47 @@ loaded via a namespace (and not attached):
 There is no data stored in the github repository as data protection does not allow the publishing. 
 The data is cited in the paper. For use of the scripts with data we recommend to directly contact the reference institutions.
 
-Data Sources
 
-Better Work Programm (Better Work 2022b. “Better Work’s Global Compliance Assessment Tool.” Better Work (blog). 2022. https://betterwork.org/portfolio/better-works-global-compliance-assessment-tool/.)
 
-ViEWS Project (Hegre, Håvard, Marie Allansson, Matthias Basedau, Michael Colaresi, Mihai Croicu, Hanne Fjelde, Frederick Hoyles, Lisa Hultman, Stina Högbladh, and Remco Jansen. 2019. “ViEWS: A Political Violence Early-Warning System.” Journal of Peace Research 56 (2): 155–74.)
+### Better Work Programm (Better Work 2022b. “Better Work’s Global Compliance Assessment Tool.” Better Work (blog). 2022. https://betterwork.org/portfolio/better-works-global-compliance-assessment-tool/.)
 
-ILO Working Indicators (ILOSTAT. 2022. “ILOSTAT - The Leading Source of Labour Statistics.” 2022. https://ilostat.ilo.org/.)
+Better Work introduced a Compliance Assessment Tool (CAT) that has three levels 
 
+Level 1: Clusters 
+The Better Work uses the CAT to assess factories for compliance with international labor standards (5 clusters) and national law (3 clusters), which comprise the following (Better Work 2022b): 
+
+Level 1 (global): 
+
+International Labor Standards: 
+Child Labor 
+Forced Labor
+Disrimination
+Freedom of Association (FoA) and Collective Bargaining (CB)
+Occupational Safety and Health (OSH)
+
+National Labor Law: 
+Contracts and Human Resources
+Working Time
+Compensation and Benefits
+
+Level 2: Compliance Points, i.e. obtaining a set compliance points for each cluster (globally)
+Level 3: Questions, having a set of questions for each compliance point (nationally)
+
+
+
+
+
+### ViEWS Project (Hegre, Håvard, Marie Allansson, Matthias Basedau, Michael Colaresi, Mihai Croicu, Hanne Fjelde, Frederick Hoyles, Lisa Hultman, Stina Högbladh, and Remco Jansen. 2019. “ViEWS: A Political Violence Early-Warning System.” Journal of Peace Research 56 (2): 155–74.)
+
+The ViEWS (Violence Early-Warning System) project aims to predict the number of fatalities in state-based conflicts (Hegre et al. 2019). Although the ViEWS dataset was created in the context of conflict studies, we believe it lends itself well to our analysis. It contains a wide range of country-level variables that include political and economic factors stemming from various sources. Furthermore, we can make good use of the dataset for our panel structure because data is available on a monthly basis. 
+The recent release from 28 October 2020 includes  the “UCDP Georeferenced Event” Dataset (henceforth GED; 10 variables; Pettersson and Öberg 2020; Sundberg and Melander 2013), “World Bank’s World Development Indicators” (henceforth WDI;274 variables ; World Bank, World Development Indicators, 2010-2022), the “Varieties of Democracy project dataset” (henceforth VDEM; 92 variables ; Coppedge et al. 2011),  “Rulers, Elections, and Irregular Governance“ dataset (henceforth REIGN; 49 variables; Bell, Besaw, and Frank 2021), the  “International Crisis group to track conflicts” dataset (henceforth ICGCW, 5 variables; International Crisis Group 2022) and a dataset composed by the ViEWS project with variables on ethnic relations, socioeconomic relations, and political governance (henceforth FVP; 51 variables;  Hegre et al. 2019)
+
+We have 397 features from the ViEWS dataset that we include into the analysis of relative feature importance. As all of these features are in monthly frequency we aggregate them to quarterly data from first quarter 2010 (Mar-May 2010) to fourth quarter 2019 (Dec-January 2019/2020) by applying the mean. 
+
+
+### ILO Working Indicators (ILOSTAT. 2022. “ILOSTAT - The Leading Source of Labour Statistics.” 2022. https://ilostat.ilo.org/.)
+
+We downloaded four employment indicators from the ILO within the R-Skript. Due to the low data frequency of one year we perform a simple interpolation that meets the temporal additivity constraint using the Denton-Cholette method without another indicator. That means that we interpolate the yearly data so that the mean over all resulting quarters of one year fits exactly the yearly value (Sax and Steiner 2013). The resulting four interpolated ILO indicators in quarterly frequency are added to the above features. 
 
 
 ## plots and tables
