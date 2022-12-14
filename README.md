@@ -1,7 +1,7 @@
 # This repository includes the Code for the Master Thesis (MDM Mannheim) "Variable Selection using Dynamic Elastic Net - An approach for 'Occupational Health and Safety' Compliance in the Garment Sector"
 ## The code is provided by the authors: Malik Hebbat, Benjamin Schumacher, Pinar Ucar, Fabio Thoma. 
 
-## R-Skripts
+## R-Scripts
 
 There is only one R-script that can be used. The script include all data loadings, manipulations and modelling. The commentaries in the script explain the steps underdone to get the final analysis data for replication if one has the raw data described below.
 
@@ -122,7 +122,7 @@ We have 397 features from the ViEWS dataset that we include into the analysis of
 We downloaded four employment indicators from the ILO within the R-Skript. Due to the low data frequency of one year we perform a simple interpolation that meets the temporal additivity constraint using the Denton-Cholette method without another indicator. That means that we interpolate the yearly data so that the mean over all resulting quarters of one year fits exactly the yearly value (Sax and Steiner 2013). The resulting four interpolated ILO indicators in quarterly frequency are added to the above features. 
 
 
-## plots and tables
+## Plots and tables
 
 There are also no plots and tables stored here for publishing as data protection does not allow. 
 All plots and tables will be produced in the R-script file and can be stored separately.
