@@ -3,7 +3,8 @@
 
 ## R-Skripts
 
-There is only one R-script that can be used. The script include all data loadings, manipulations and modelling.
+There is only one R-script that can be used. The script include all data loadings, manipulations and modelling. The commentaries in the script explain the steps underdone to get the final analysis data for replication if one has the raw data described below.
+
 The script was tested on 14/12/2022 with the following configurations:
 
 R version 4.2.1 (2022-06-23)
@@ -78,9 +79,19 @@ loaded via a namespace (and not attached):
 There is no data stored in the github repository as data protection does not allow the publishing. 
 The data is cited in the paper. For use of the scripts with data we recommend to directly contact the reference institutions.
 
+Data Sources
+
+Better Work Programm (Better Work 2022b. “Better Work’s Global Compliance Assessment Tool.” Better Work (blog). 2022. https://betterwork.org/portfolio/better-works-global-compliance-assessment-tool/.)
+
+ViEWS Project (Hegre, Håvard, Marie Allansson, Matthias Basedau, Michael Colaresi, Mihai Croicu, Hanne Fjelde, Frederick Hoyles, Lisa Hultman, Stina Högbladh, and Remco Jansen. 2019. “ViEWS: A Political Violence Early-Warning System.” Journal of Peace Research 56 (2): 155–74.)
+
+ILO Working Indicators (ILOSTAT. 2022. “ILOSTAT - The Leading Source of Labour Statistics.” 2022. https://ilostat.ilo.org/.)
+
+
+
 ## plots and tables
 
-There are also no plots and tables stored here for publishing as data protection does not allow for publishing. 
+There are also no plots and tables stored here for publishing as data protection does not allow. 
 All plots and tables will be produced in the R-script file and can be stored separately.
 
 
