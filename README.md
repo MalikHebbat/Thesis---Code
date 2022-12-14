@@ -1,10 +1,10 @@
-# This repository includes the Code for the Master Thesis (MDM Mannheim) "What drives non-compliance Occupational Safety and Health in the Garment Sector? - An Approach for variable selection using Dynamic Elastic Net"
+# This repository includes the Code for the Master Thesis (MDM Mannheim) "Variable Selection using Dynamic Elastic Net - An approach for 'Occupational Health and Safety' Compliance in the Garment Sector"
 ## The code is provided by the authors: Malik Hebbat, Benjamin Schumacher, Pinar Ucar, Fabio Thoma. 
 
 ## R-Skripts
 
 There is only one R-script that can be used. The script include all data loadings, manipulations and modelling.
-The script was tested on 12/12/2022 with the following configurations:
+The script was tested on 14/12/2022 with the following configurations:
 
 R version 4.2.1 (2022-06-23)
 Platform: aarch64-apple-darwin20 (64-bit)
